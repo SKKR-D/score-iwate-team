@@ -334,12 +334,52 @@
         function getDisp(l, r, fin) { const border = fin ? 6 : 3; if (l < border || r < border) return { l, r }; if (l === r) return { l: 'D', r: 'D' }; if (l > r) return { l: 'A', r: 'D' }; return { l: 'D', r: 'A' }; }
         function update() { const inf = getServ(); document.getElementById('gs-L').textContent = S.gL; document.getElementById('gs-R').textContent = S.gR; const d = getDisp(S.pL, S.pR, S.isFinal); document.getElementById('pt-L').textContent = d.l; document.getElementById('pt-R').textContent = d.r; document.getElementById('game-info').textContent = S.isFinal ? "ファイナル" : `${S.gL + S.gR + 1}G目`; ['A', 'B', 'C', 'D'].forEach(p => { document.getElementById('nm-' + p).value = S.names[p]; document.getElementById('role-' + p).className = `p-role ${p === inf.s ? 'role-s' : (p === inf.r ? 'role-r' : '')}`; document.getElementById('role-' + p).textContent = p === inf.s ? 'S' : (p === inf.r ? 'R' : ''); const row = document.getElementById('row-' + p); row.classList.remove('active-server', 'active-receiver'); if (p === inf.s) row.classList.add('active-server'); if (p === inf.r) row.classList.add('active-receiver'); }); drawChart('flow-chart', S.hist, S.isFinal); }
         function drawChart(id, hist, fin) { const cvs = document.getElementById(id); if (!cvs) return; const ctx = cvs.getContext('2d'); const dpr = window.devicePixelRatio || 1; const rect = cvs.getBoundingClientRect(); cvs.width = rect.width * dpr; cvs.height = rect.height * dpr; ctx.scale(dpr, dpr); const w = rect.width; const h = rect.height; const pts = [0]; let c = 0; hist.forEach(x => { c += (x === 'L' ? 1 : -1); pts.push(c); }); const absMax = Math.max(fin ? 9 : 5, ...pts.map(Math.abs)); const mid = h / 2; const sc = (mid - 6) / absMax; const step = (w - 10) / (pts.length || 1); ctx.beginPath(); ctx.strokeStyle = '#c8e6c9'; ctx.moveTo(0, mid); ctx.lineTo(w, mid); ctx.stroke(); ctx.beginPath(); ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 2; pts.forEach((y, x) => { x === 0 ? ctx.moveTo(5, mid - y * sc) : ctx.lineTo(5 + x * step, mid - y * sc); }); ctx.stroke(); }
+        
         function sendToLive() { S.meta = { ...TS.meta, gender: TS.gender }; const payload = { type: "team_match", TS: TS, S: S, lastUpdate: Date.now() }; fetch(GAS_URL_LIVE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }).catch(e => console.error(e)); }
         function sendToRecord() { const btn = document.getElementById('btn-send-record'); btn.innerHTML = "送信中..."; btn.disabled = true; S.meta = { ...TS.meta, gender: TS.gender }; const payload = { type: "team_match", teamData: TS, matchData: S }; fetch(GAS_URL_RECORD, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }).then(() => { btn.innerHTML = "✓ 送信済み"; btn.style.background = "#555"; document.getElementById('btn-next-match').style.display = "block"; }).catch(() => { alert("エラー"); btn.disabled = false; btn.innerHTML = "再送信"; }); }
+        
         function showResult() { document.getElementById('res-match-num').textContent = TS.currentMatchNum; document.getElementById('res-winner').textContent = S.gL > S.gR ? TS.teamL : TS.teamR; document.getElementById('res-score').textContent = `${S.gL} - ${S.gR}`; const tbl = document.getElementById('res-score-tbl'); let h = `<tr><th></th>${S.log.map((g, i) => `<th>G${i + 1}</th>`).join('')}<th>計</th></tr>`; h += `<tr><td style="color:var(--blue)">岩手選抜</td>${S.log.map(g => `<td>${g.L}</td>`).join('')}<td>${S.gL}</td></tr>`; h += `<tr><td style="color:var(--red)">相手</td>${S.log.map(g => `<td>${g.R}</td>`).join('')}<td>${S.gR}</td></tr>`; tbl.innerHTML = h; const stTbl = document.getElementById('res-stats-tbl'); stTbl.innerHTML = ''; ['A', 'B', 'C', 'D'].forEach(p => { const s = S.stats[p]; const rate = s.st > 0 ? Math.round(s.fi / s.st * 100) + '%' : '-'; stTbl.innerHTML += `<tr><td>${S.names[p]}</td><td>${s.p}</td><td>${s.m}</td><td>${rate}</td></tr>`; }); document.getElementById('btn-next-match').innerHTML = TS.currentMatchNum >= 3 ? "結果へ" : "次へ"; step(3); document.getElementById('modal').classList.remove('hidden'); }
-        function processTeamResult() { S.gL > S.gR ? TS.winsL++ : TS.winsR++; TS.matchResults.push({ A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR }); if (TS.currentMatchNum >= 3) { showFinalResult(); } else { TS.currentMatchNum++; updateTeamUI(); const mG = S.maxG, wG = S.winG; S = getInitialMatchState(); S.maxG = mG; S.winG = wG; const o = TS.matchOrders[TS.currentMatchNum - 1]; S.names.A = o.A || 'A'; S.names.B = o.B || 'B'; S.names.C = o.C || '相手C'; S.names.D = o.D || '相手D'; document.getElementById('nm-A').innerHTML = `<option value="${S.names.A}">${S.names.A}</option>`; document.getElementById('nm-B').innerHTML = `<option value="${S.names.B}">${S.names.B}</option>`; document.getElementById('btn-next-match').style.display = "none"; step(1); } }
+        
+        function processTeamResult() { 
+            S.gL > S.gR ? TS.winsL++ : TS.winsR++; 
+            TS.matchResults[TS.currentMatchNum - 1] = { A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR }; 
+            S.isMatchCompleted = true;
+            sendToLive(); // 結果保存後にライブAPIへ最終状態を送信
+
+            if (TS.currentMatchNum >= 3) { 
+                showFinalResult(); 
+            } else { 
+                TS.currentMatchNum++; 
+                updateTeamUI(); 
+                const mG = S.maxG, wG = S.winG; 
+                S = getInitialMatchState(); 
+                S.maxG = mG; S.winG = wG; 
+                historyStack = [];
+                const o = TS.matchOrders[TS.currentMatchNum - 1]; 
+                S.names.A = o.A || 'A'; S.names.B = o.B || 'B'; S.names.C = o.C || '相手C'; S.names.D = o.D || '相手D'; 
+                
+                document.getElementById('nm-A').innerHTML = `<option value="${S.names.A}">${S.names.A}</option>`; 
+                document.getElementById('nm-B').innerHTML = `<option value="${S.names.B}">${S.names.B}</option>`; 
+                
+                document.getElementById('btn-send-record').innerHTML = "☁ スコアを送信する";
+                document.getElementById('btn-send-record').disabled = false;
+                document.getElementById('btn-send-record').style.background = "#0288d1";
+                document.getElementById('btn-next-match').style.display = "none";
+                
+                document.getElementById('serve-team-select-area').style.display = "block";
+                document.getElementById('pos-options-area').style.display = "none";
+                document.getElementById('btn-back-to-step0').style.display = "none";
+                
+                const sBtns = document.getElementById('serve-team-opts2').querySelectorAll('.opt-btn');
+                sBtns.forEach(b => b.classList.remove('sel-gold'));
+                step(1); 
+            } 
+        }
+        
         function showFinalResult() { step(4); document.getElementById('final-team-score').textContent = `${TS.winsL} - ${TS.winsR}`; document.getElementById('final-winner-text').textContent = TS.winsL > TS.winsR ? "岩手選抜 WIN!" : "相手校 WIN!"; }
+        
         function checkForOngoingMatch() { fetch(`${GAS_URL_LIVE}?all=true`).then(r => r.json()).then(data => { const now = Date.now(); const d = data.find(x => x.TS.teamL === '岩手選抜' && (now - x.lastUpdate) < 3600000); if (d) { document.getElementById('join-banner').style.display = 'block'; document.getElementById('join-desc').textContent = `岩手選抜 VS ${d.TS.teamR} 進行中`; } }); }
+        
         function joinOngoingMatch() { /* 実装略 */ }
     </script>
 </body>
