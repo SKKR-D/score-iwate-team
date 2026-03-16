@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>【岩手選抜】団体戦 速報ダッシュボード</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --team-bg: #1b5e20; --team-gold: #fbc02d; --bg: #e8f5e9; --surface: #ffffff; --border: #a5d6a7; --text: #1f2937; --text-dim: #6b7280; --blue: #1976d2; --red: #d32f2f; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); padding: 15px; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--team-bg); color: #fff; border-radius: 8px; margin-bottom: 20px; border-bottom: 4px solid var(--team-gold); }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; }
+        .m-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; text-decoration: none; color: inherit; overflow: hidden; }
+        .mc-top { background: var(--team-bg); color: var(--team-gold); padding: 8px 12px; display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; }
+        .team-battle-area { padding: 15px; text-align: center; border-bottom: 1px solid #eee; }
+        .tba-names { font-size: 1.4rem; font-weight: 900; display: flex; justify-content: space-around; }
+        .tba-wins { font-family: 'Orbitron', sans-serif; font-size: 3.5rem; font-weight: 900; color: var(--blue); }
+        .match-row { padding: 10px; border-bottom: 1px solid #f9f9f9; }
+        .match-row.active { background: #e8f5e9; border-left: 5px solid var(--team-gold); }
+        .score-box { display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-weight: 900; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="dash-header">
+        <div style="font-weight:900; font-size:1.2rem;">岩手選抜 速報ダッシュボード</div>
+        <div id="d-time" style="font-size: 0.8rem;">更新中...</div>
+    </div>
+    <div class="grid-container" id="grid-wrap"></div>
+    <script>
+        const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbydvwdFFSZREQITH7aI3SZ0fVwhXd6dQaN1utfbmgDiLXHzUEjWcRNvg177TXXrC6QA/exec";
+        const COURT_NAME_MAP = { sun_1: 'サン1', sun_2: 'サン2', sun_3: 'サン3', sun_4: 'サン4', ken_1: '県体1', ken_2: '県体2' };
+        window.onload = () => { fetchDashboard(); setInterval(fetchDashboard, 5000); };
+        function fetchDashboard() { fetch(`${GAS_URL_LIVE}?all=true`).then(r => r.json()).then(renderDashboard); document.getElementById('d-time').textContent = new Date().toLocaleTimeString(); }
+        function renderDashboard(matches) {
+            const wrap = document.getElementById('grid-wrap');
+            if (matches.length === 0) { wrap.innerHTML = "現在試合はありません"; return; }
+            wrap.innerHTML = matches.map(data => {
+                const TS = data.TS; const S = data.S;
+                return `<div class="m-card">
+                    <div class="mc-top"><span>${COURT_NAME_MAP[S.meta.court] || S.meta.court}</span><span>${TS.meta.tourney || ''}</span></div>
+                    <div class="team-battle-area">
+                        <div class="tba-names"><span style="color:var(--blue)">${TS.teamL}</span><span>VS</span><span style="color:var(--red)">${TS.teamR}</span></div>
+                        <div class="tba-wins">${TS.winsL} - ${TS.winsR}</div>
+                    </div>
+                    <div class="match-row active">
+                        <div style="text-align:center; font-size:0.7rem; font-weight:bold; color:var(--team-bg);">第${TS.currentMatchNum}マッチ 進行中</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 10px;">
+                            <div style="font-weight:bold; font-size:0.8rem;">${S.names.A}<br>${S.names.B}</div>
+                            <div class="score-box">${S.gL} - ${S.gR}</div>
+                            <div style="font-weight:bold; font-size:0.8rem; text-align:right;">${S.names.C}<br>${S.names.D}</div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>【岩手選抜】ライブ詳細</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --team-bg: #1b5e20; --team-gold: #fbc02d; --bg: #2e7d32; --surface: #ffffff; --border: #c8e6c9; --blue: #1976d2; --red: #d32f2f; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; }
+        .scoreboard { width: 100%; max-width: 600px; background: var(--surface); min-height: 100vh; display: flex; flex-direction: column; }
+        .back-dash-btn { background: var(--team-bg); color: #fff; padding: 12px; text-align:center; text-decoration: none; font-weight:bold; }
+        .team-board { padding: 25px 15px; text-align: center; border-bottom: 4px solid var(--team-gold); background: #f1f8e9; }
+        .tb-wins { font-family: 'Orbitron'; font-size: 4rem; font-weight: 900; color: var(--blue); }
+        .gc-score { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; }
+        .pt-box { width: 100px; aspect-ratio: 3/4; border: 4px solid var(--border); display: flex; justify-content: center; align-items: center; font-family: sans-serif; font-size: 5rem; font-weight: 900; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="scoreboard">
+        <a href="dashboard.html" class="back-dash-btn">ダッシュボードに戻る</a>
+        <div id="main-content">
+            <div class="team-board">
+                <div id="v-tourney" style="background:var(--team-gold); display:inline-block; padding:2px 10px; border-radius:15px; font-size:0.8rem; font-weight:bold;">大会情報</div>
+                <div style="font-size:1.6rem; font-weight:900; margin-top:10px;"><span id="v-teamL" style="color:var(--blue)">岩手選抜</span> VS <span id="v-teamR" style="color:var(--red)">相手</span></div>
+                <div class="tb-wins"><span id="v-winL">0</span> - <span id="v-winR">0</span></div>
+            </div>
+            <div style="display:flex; padding:20px; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
+                <div style="text-align:center; flex:1;"><div id="v-pairL" style="font-weight:bold; color:var(--blue);"></div><div class="gc-score" id="v-gL" style="color:var(--blue);">0</div></div>
+                <div style="font-weight:bold; background:var(--team-bg); color:#fff; padding:2px 8px; border-radius:5px;">GAME</div>
+                <div style="text-align:center; flex:1;"><div id="v-pairR" style="font-weight:bold; color:var(--red);"></div><div class="gc-score" id="v-gR" style="color:var(--red);">0</div></div>
+            </div>
+            <div style="padding:30px; display:flex; justify-content:center; align-items:center; background:#fafafa;">
+                <div class="pt-box" id="v-pL" style="color:var(--blue);">0</div>
+                <div style="font-size:3rem; margin:0 20px; color:#ccc;">-</div>
+                <div class="pt-box" id="v-pR" style="color:var(--red);">0</div>
+            </div>
+            <div style="text-align:center; padding:15px; font-weight:900; color:var(--team-bg);">もえあがれ岩手</div>
+        </div>
+    </div>
+    <script>
+        const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbydvwdFFSZREQITH7aI3SZ0fVwhXd6dQaN1utfbmgDiLXHzUEjWcRNvg177TXXrC6QA/exec";
+        const urlParams = new URLSearchParams(window.location.search);
+        const court = urlParams.get('court') || 'sun_1';
+        window.onload = () => { setInterval(fetchScore, 3000); fetchScore(); };
+        function fetchScore() { fetch(`${GAS_URL_LIVE}?court=${court}`).then(r => r.json()).then(data => {
+            if(!data.TS) return;
+            document.getElementById('v-teamL').textContent = data.TS.teamL; document.getElementById('v-teamR').textContent = data.TS.teamR;
+            document.getElementById('v-winL').textContent = data.TS.winsL; document.getElementById('v-winR').textContent = data.TS.winsR;
+            document.getElementById('v-pairL').innerHTML = `${data.S.names.A}<br>${data.S.names.B}`; document.getElementById('v-pairR').innerHTML = `${data.S.names.C}<br>${data.S.names.D}`;
+            document.getElementById('v-gL').textContent = data.S.gL; document.getElementById('v-gR').textContent = data.S.gR;
+            document.getElementById('v-pL').textContent = data.S.pL; document.getElementById('v-pR').textContent = data.S.pR;
+        }); }
+    </script>
+</body>
+</html>
