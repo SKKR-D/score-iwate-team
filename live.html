@@ -11,10 +11,18 @@
         body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; }
         .scoreboard { width: 100%; max-width: 600px; background: var(--surface); min-height: 100vh; display: flex; flex-direction: column; }
         .back-dash-btn { background: var(--team-bg); color: #fff; padding: 12px; text-align:center; text-decoration: none; font-weight:bold; }
-        .team-board { padding: 25px 15px; text-align: center; border-bottom: 4px solid var(--team-gold); background: #f1f8e9; }
-        .tb-wins { font-family: 'Orbitron'; font-size: 4rem; font-weight: 900; color: var(--blue); }
+        .team-board { padding: 25px 15px 15px 15px; text-align: center; background: #f1f8e9; }
+        .tb-wins { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; color: var(--blue); line-height: 1.2; }
         .gc-score { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; }
         .pt-box { width: 100px; aspect-ratio: 3/4; border: 4px solid var(--border); display: flex; justify-content: center; align-items: center; font-family: sans-serif; font-size: 5rem; font-weight: 900; border-radius: 10px; }
+        
+        /* オーダー表用のデザイン */
+        .order-table-wrap { padding: 10px; background: #ffffff; border-bottom: 3px solid var(--team-gold); }
+        .order-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .order-table td { padding: 8px 4px; border-bottom: 1px dashed #eee; text-align: center; vertical-align: middle; }
+        .ol-name-L { font-weight: bold; color: var(--blue); width: 40%; text-align: left; padding-left: 10px; line-height: 1.2;}
+        .ol-name-R { font-weight: bold; color: var(--red); width: 40%; text-align: right; padding-right: 10px; line-height: 1.2;}
+        .ol-score { font-weight: 900; width: 20%; background: #f9f9f9; }
     </style>
 </head>
 <body>
@@ -26,9 +34,19 @@
                 <div style="font-size:1.6rem; font-weight:900; margin-top:10px;"><span id="v-teamL" style="color:var(--blue)">岩手選抜</span> VS <span id="v-teamR" style="color:var(--red)">相手</span></div>
                 <div class="tb-wins"><span id="v-winL">0</span> - <span id="v-winR">0</span></div>
             </div>
-            <div style="display:flex; padding:20px; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
+            
+            <div class="order-table-wrap">
+                <div style="font-size:0.75rem; font-weight:bold; text-align:center; color:#666; margin-bottom:5px;">📋 団体戦オーダー</div>
+                <table class="order-table">
+                    <tr><td class="ol-name-L" id="ol-L1">-</td><td class="ol-score" id="ol-S1">M1</td><td class="ol-name-R" id="ol-R1">-</td></tr>
+                    <tr><td class="ol-name-L" id="ol-L2">-</td><td class="ol-score" id="ol-S2">M2</td><td class="ol-name-R" id="ol-R2">-</td></tr>
+                    <tr style="border:none;"><td class="ol-name-L" id="ol-L3">-</td><td class="ol-score" id="ol-S3">M3</td><td class="ol-name-R" id="ol-R3">-</td></tr>
+                </table>
+            </div>
+
+            <div style="display:flex; padding:15px 20px; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
                 <div style="text-align:center; flex:1;"><div id="v-pairL" style="font-weight:bold; color:var(--blue);"></div><div class="gc-score" id="v-gL" style="color:var(--blue);">0</div></div>
-                <div style="font-weight:bold; background:var(--team-bg); color:#fff; padding:2px 8px; border-radius:5px;">GAME</div>
+                <div style="font-weight:bold; background:var(--team-bg); color:#fff; padding:4px 8px; border-radius:5px; font-size:0.8rem;" id="v-game-num">GAME</div>
                 <div style="text-align:center; flex:1;"><div id="v-pairR" style="font-weight:bold; color:var(--red);"></div><div class="gc-score" id="v-gR" style="color:var(--red);">0</div></div>
             </div>
             <div style="padding:30px; display:flex; justify-content:center; align-items:center; background:#fafafa;">
@@ -42,16 +60,63 @@
     <script>
         const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbydvwdFFSZREQITH7aI3SZ0fVwhXd6dQaN1utfbmgDiLXHzUEjWcRNvg177TXXrC6QA/exec";
         const urlParams = new URLSearchParams(window.location.search);
-        const court = urlParams.get('court') || 'sun_1';
+        const court = urlParams.get('court');
+        
         window.onload = () => { setInterval(fetchScore, 3000); fetchScore(); };
-        function fetchScore() { fetch(`${GAS_URL_LIVE}?court=${court}`).then(r => r.json()).then(data => {
-            if(!data.TS) return;
-            document.getElementById('v-teamL').textContent = data.TS.teamL; document.getElementById('v-teamR').textContent = data.TS.teamR;
-            document.getElementById('v-winL').textContent = data.TS.winsL; document.getElementById('v-winR').textContent = data.TS.winsR;
-            document.getElementById('v-pairL').innerHTML = `${data.S.names.A}<br>${data.S.names.B}`; document.getElementById('v-pairR').innerHTML = `${data.S.names.C}<br>${data.S.names.D}`;
-            document.getElementById('v-gL').textContent = data.S.gL; document.getElementById('v-gR').textContent = data.S.gR;
-            document.getElementById('v-pL').textContent = data.S.pL; document.getElementById('v-pR').textContent = data.S.pR;
-        }); }
+        
+        function getDisp(l, r, fin) { const border = fin ? 6 : 3; if (l < border || r < border) return { l, r }; if (l === r) return { l: 'D', r: 'D' }; if (l > r) return { l: 'A', r: 'D' }; return { l: 'D', r: 'A' }; }
+
+        function fetchScore() { 
+            if(!court) return;
+            fetch(`${GAS_URL_LIVE}?court=${court}`).then(r => r.json()).then(data => {
+                if(!data.TS) return;
+                
+                // ヘッダーと現在進行中スコアの更新
+                document.getElementById('v-tourney').textContent = data.TS.meta.tourney || '大会情報';
+                document.getElementById('v-teamL').textContent = data.TS.teamL; document.getElementById('v-teamR').textContent = data.TS.teamR;
+                document.getElementById('v-winL').textContent = data.TS.winsL; document.getElementById('v-winR').textContent = data.TS.winsR;
+                document.getElementById('v-pairL').innerHTML = `${data.S.names.A}<br>${data.S.names.B}`; document.getElementById('v-pairR').innerHTML = `${data.S.names.C}<br>${data.S.names.D}`;
+                document.getElementById('v-gL').textContent = data.S.gL; document.getElementById('v-gR').textContent = data.S.gR;
+                
+                const d = getDisp(data.S.pL, data.S.pR, data.S.isFinal);
+                document.getElementById('v-pL').textContent = d.l; document.getElementById('v-pR').textContent = d.r;
+                document.getElementById('v-game-num').textContent = data.S.isFinal ? "ファイナル" : `第${data.S.gL+data.S.gR+1}G`;
+
+                // オーダー表の更新処理
+                for(let i=0; i<3; i++) {
+                    const order = (data.TS.matchOrders && data.TS.matchOrders[i]) ? data.TS.matchOrders[i] : {A:'',B:'',C:'',D:''};
+                    const res = data.TS.matchResults && data.TS.matchResults[i];
+                    
+                    let pA = order.A || '-'; let pB = order.B || '-';
+                    let pC = order.C || '-'; let pD = order.D || '-';
+                    
+                    let pL = `${pA}<br><span style="font-size:0.7rem;">${pB}</span>`;
+                    let pR = `${pC}<br><span style="font-size:0.7rem;">${pD}</span>`;
+                    let scoreText = `第${i+1}M`;
+                    let opacity = "1";
+                    
+                    if(res) {
+                        pL = `${res.A}<br><span style="font-size:0.7rem;">${res.B}</span>`;
+                        pR = `${res.C}<br><span style="font-size:0.7rem;">${res.D}</span>`;
+                        scoreText = `<span style="font-size:1.1rem; color:#666;">${res.gL} - ${res.gR}</span>`;
+                        opacity = "0.4"; // 終了済みは薄く
+                    } else if (data.TS.currentMatchNum === (i+1) && !data.S.isMatchCompleted) {
+                        pL = `${data.S.names.A}<br><span style="font-size:0.7rem;">${data.S.names.B}</span>`;
+                        pR = `${data.S.names.C}<br><span style="font-size:0.7rem;">${data.S.names.D}</span>`;
+                        scoreText = `<span style="color:#1b5e20; font-size:0.7rem; background:#c8e6c9; padding:2px 4px; border-radius:4px;">LIVE</span>`;
+                    } else {
+                        scoreText = `<span style="color:#999; font-size:0.7rem;">待機中</span>`;
+                        opacity = "0.7";
+                    }
+                    
+                    document.getElementById(`ol-L${i+1}`).innerHTML = pL;
+                    document.getElementById(`ol-L${i+1}`).style.opacity = opacity;
+                    document.getElementById(`ol-R${i+1}`).innerHTML = pR;
+                    document.getElementById(`ol-R${i+1}`).style.opacity = opacity;
+                    document.getElementById(`ol-S${i+1}`).innerHTML = scoreText;
+                }
+            }); 
+        }
     </script>
 </body>
 </html>

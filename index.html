@@ -307,6 +307,9 @@
             S.names.A = o.A; S.names.B = o.B; S.names.C = o.C || '相手C'; S.names.D = o.D || '相手D';
             S.startTeam = TS.firstServeTeam; S.curServTeam = TS.firstServeTeam;
             updateTeamUI(); step(1);
+            
+            // ★追加：次へを押した瞬間に「試合前」のオーダー情報をダッシュボードに送信
+            sendToLive();
         }
         function backToStep0() { step(0); }
         function setServeTeam(t) { S.startTeam = t; S.curServTeam = t; buildPos(); document.getElementById('pos-options-area').style.display = "block"; }
@@ -344,7 +347,7 @@
             S.gL > S.gR ? TS.winsL++ : TS.winsR++; 
             TS.matchResults[TS.currentMatchNum - 1] = { A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR }; 
             S.isMatchCompleted = true;
-            sendToLive(); // 結果保存後にライブAPIへ最終状態を送信
+            sendToLive();
 
             if (TS.currentMatchNum >= 3) { 
                 showFinalResult(); 
