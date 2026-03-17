@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#1b5e20">
     <title>【岩手選抜】団体戦スコアブック</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Roboto+Mono:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root { 
             --team-bg: #1b5e20; --team-gold: #fbc02d; --team-gold-dim: #fff9c4;
@@ -41,7 +41,7 @@
 
         .result-header { border-bottom: 2px solid var(--team-gold); padding-bottom: 8px; margin-bottom: 8px; text-align: center; }
         .rh-winner { font-family: 'Noto Sans JP', sans-serif; font-size: 1.6rem; font-weight: 900; color: var(--team-bg); }
-        .rh-score { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 900; color: var(--text); }
+        .rh-score { font-family: 'Roboto Mono', monospace; font-size: 1.8rem; font-weight: 900; color: var(--text); }
         .compact-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 8px; }
         .compact-table th { background: var(--surface2); padding: 4px; border: 1px solid var(--border); color: var(--text-dim); }
         .compact-table td { padding: 4px; border: 1px solid var(--border); text-align: center; font-weight: 700; }
@@ -58,7 +58,7 @@
 
         .app { width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); }
         .header { padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .game-score-display { font-family: 'Orbitron', sans-serif; font-size: 2.8rem; font-weight: 900; line-height: 1; }
+        .game-score-display { font-family: 'Roboto Mono', monospace; font-size: 2.8rem; font-weight: 900; line-height: 1; }
         .gs-left { color: var(--blue); } .gs-right { color: var(--red); }
         
         .score-area { flex: 1; display: flex; gap: 6px; padding: 6px; min-height: 0; }
@@ -67,7 +67,7 @@
         .panel-top { padding: 6px; text-align: center; font-weight: 900; font-size: 0.9rem; color: #fff; border-radius: 8px 8px 0 0; }
         .left .panel-top { background: var(--blue); } .right .panel-top { background: var(--red); }
         
-        .point-display { flex: 1; display: flex; align-items: center; justify-content: center; font-family: 'Helvetica World', Helvetica, sans-serif; font-size: 6rem; line-height: 1; font-weight: 900; margin: 5px 0; }
+        .point-display { flex: 1; display: flex; align-items: center; justify-content: center; font-family: 'Roboto Mono', monospace; font-size: 6rem; line-height: 1; font-weight: 900; margin: 5px 0; }
         .left .point-display { color: var(--blue); } .right .point-display { color: var(--red); }
         
         .players-box { display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--surface2); flex: 1; justify-content: flex-end; border-radius: 0 0 8px 8px;}
@@ -171,7 +171,7 @@
                 <div style="text-align: center; margin-bottom: 15px;"><span class="team-badge" style="background:#0288d1; color:#fff;">複数コート連携モード</span></div>
                 <div style="text-align:center; background:var(--surface2); padding:10px; border-radius:8px; margin-bottom:15px;">
                     <div style="font-size:0.8rem; font-weight:bold; color:var(--text-dim);">部屋コード</div>
-                    <div style="font-family:'Orbitron', sans-serif; font-size:2rem; font-weight:900; letter-spacing:8px; color:var(--blue);" id="display-room-code">----</div>
+                    <div style="font-family:'Roboto Mono', monospace; font-size:2rem; font-weight:900; letter-spacing:8px; color:var(--blue);" id="display-room-code">----</div>
                 </div>
 
                 <p class="input-label">📌 担当するマッチ</p>
@@ -256,7 +256,7 @@
             </div>
             <div style="flex: 1; display:flex; flex-direction:column; align-items:flex-end; justify-content:center;">
                 <div style="font-size:0.7rem; font-weight:bold; color:var(--text-dim);">団体</div>
-                <div style="font-family:'Orbitron', sans-serif; font-size:1.5rem; font-weight:900;"><span id="team-win-L" style="color:var(--blue);">0</span> <span style="font-size:1rem;color:#ccc;">-</span> <span id="team-win-R" style="color:var(--red);">0</span></div>
+                <div style="font-family:'Roboto Mono', monospace; font-size:1.5rem; font-weight:900;"><span id="team-win-L" style="color:var(--blue);">0</span> <span style="font-size:1rem;color:#ccc;">-</span> <span id="team-win-R" style="color:var(--red);">0</span></div>
                 <button onclick="undo()" style="background:none; border:none; font-size:1.1rem; cursor:pointer; margin-top:2px;">↩️戻</button>
             </div>
         </div>
@@ -440,11 +440,13 @@
         }
         
         function confirmStep2() { document.getElementById('modal').classList.add('hidden'); update(); sendToLive(); }
+        
+        // ★ 2ゲーム目以降は陣営選択をスキップするロジック
         function step(n) { 
             document.querySelectorAll('#modal > .modal-card > div').forEach(el => el.style.display = 'none'); 
             document.getElementById('step-' + n).style.display = 'block'; 
             if (n === 1) {
-                if(S.totalP === 0) {
+                if (S.curServTeam === null) {
                     document.getElementById('serve-team-select-area').style.display = "block";
                     document.getElementById('pos-options-area').style.display = "none";
                 } else {
@@ -454,6 +456,7 @@
                 }
             }
         }
+        
         function goBackFromStep1() { step(appMode === 'single' ? 0 : 'match-select'); }
 
         function updateTeamUI() { document.getElementById('app-matchNum').textContent = TS.currentMatchNum; document.getElementById('team-win-L').textContent = TS.winsL; document.getElementById('team-win-R').textContent = TS.winsR; document.getElementById('tname-R').textContent = TS.teamR; document.getElementById('disp-court-main').textContent = document.getElementById(appMode === 'single' ? 'm-court' : 'sel-court-multi').options[document.getElementById(appMode === 'single' ? 'm-court' : 'sel-court-multi').selectedIndex].text.replace('サンアリーナ ','サン').replace('県営体育館 ','県営'); }

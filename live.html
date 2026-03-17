@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>【岩手選抜】ライブ詳細</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Roboto+Mono:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root { --team-bg: #1b5e20; --team-gold: #fbc02d; --bg: #2e7d32; --surface: #ffffff; --border: #c8e6c9; --blue: #1976d2; --red: #d32f2f; }
         body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; }
         .scoreboard { width: 100%; max-width: 600px; background: var(--surface); min-height: 100vh; display: flex; flex-direction: column; }
         .back-dash-btn { background: var(--team-bg); color: #fff; padding: 12px; text-align:center; text-decoration: none; font-weight:bold; }
         .team-board { padding: 25px 15px 15px 15px; text-align: center; background: #f1f8e9; }
-        .tb-wins { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; color: var(--blue); line-height: 1.2; }
-        .gc-score { font-family: 'Orbitron'; font-size: 3.5rem; font-weight: 900; }
-        .pt-box { width: 100px; aspect-ratio: 3/4; border: 4px solid var(--border); display: flex; justify-content: center; align-items: center; font-family: sans-serif; font-size: 5rem; font-weight: 900; border-radius: 10px; }
+        .tb-wins { font-family: 'Roboto Mono', monospace; font-size: 3.5rem; font-weight: 900; color: var(--blue); line-height: 1.2; }
+        .gc-score { font-family: 'Roboto Mono', monospace; font-size: 3.5rem; font-weight: 900; }
+        .pt-box { width: 100px; aspect-ratio: 3/4; border: 4px solid var(--border); display: flex; justify-content: center; align-items: center; font-family: 'Roboto Mono', monospace; font-size: 5rem; font-weight: 900; border-radius: 10px; }
         
         /* オーダー表用のデザイン */
         .order-table-wrap { padding: 10px; background: #ffffff; border-bottom: 3px solid var(--team-gold); }
@@ -51,7 +51,7 @@
             </div>
             <div style="padding:30px; display:flex; justify-content:center; align-items:center; background:#fafafa;">
                 <div class="pt-box" id="v-pL" style="color:var(--blue);">0</div>
-                <div style="font-size:3rem; margin:0 20px; color:#ccc;">-</div>
+                <div style="font-family:'Roboto Mono', monospace; font-size:3rem; margin:0 20px; color:#ccc;">-</div>
                 <div class="pt-box" id="v-pR" style="color:var(--red);">0</div>
             </div>
             <div style="text-align:center; padding:15px; font-weight:900; color:var(--team-bg);">もえあがれ岩手</div>
@@ -71,7 +71,6 @@
             fetch(`${GAS_URL_LIVE}?court=${court}`).then(r => r.json()).then(data => {
                 if(!data.TS) return;
                 
-                // ヘッダーと現在進行中スコアの更新
                 document.getElementById('v-tourney').textContent = data.TS.meta.tourney || '大会情報';
                 document.getElementById('v-teamL').textContent = data.TS.teamL; document.getElementById('v-teamR').textContent = data.TS.teamR;
                 document.getElementById('v-winL').textContent = data.TS.winsL; document.getElementById('v-winR').textContent = data.TS.winsR;
@@ -82,7 +81,6 @@
                 document.getElementById('v-pL').textContent = d.l; document.getElementById('v-pR').textContent = d.r;
                 document.getElementById('v-game-num').textContent = data.S.isFinal ? "ファイナル" : `第${data.S.gL+data.S.gR+1}G`;
 
-                // オーダー表の更新処理
                 for(let i=0; i<3; i++) {
                     const order = (data.TS.matchOrders && data.TS.matchOrders[i]) ? data.TS.matchOrders[i] : {A:'',B:'',C:'',D:''};
                     const res = data.TS.matchResults && data.TS.matchResults[i];
@@ -98,8 +96,8 @@
                     if(res) {
                         pL = `${res.A}<br><span style="font-size:0.7rem;">${res.B}</span>`;
                         pR = `${res.C}<br><span style="font-size:0.7rem;">${res.D}</span>`;
-                        scoreText = `<span style="font-size:1.1rem; color:#666;">${res.gL} - ${res.gR}</span>`;
-                        opacity = "0.4"; // 終了済みは薄く
+                        scoreText = `<span style="font-family:'Roboto Mono', monospace; font-size:1.1rem; color:#666;">${res.gL} - ${res.gR}</span>`;
+                        opacity = "0.4"; 
                     } else if (data.TS.currentMatchNum === (i+1) && !data.S.isMatchCompleted) {
                         pL = `${data.S.names.A}<br><span style="font-size:0.7rem;">${data.S.names.B}</span>`;
                         pR = `${data.S.names.C}<br><span style="font-size:0.7rem;">${data.S.names.D}</span>`;
