@@ -98,6 +98,9 @@
         .sm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .sm-btn { padding: 16px; background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; font-weight: 900; text-align: center; cursor: pointer; }
         .sm-back { grid-column: span 2; padding: 10px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; font-weight:bold; }
+
+        /* ★ダブルフォルト表示用アニメーションCSS★ */
+        .flash-overlay { position:absolute; top:40%; left:50%; transform:translate(-50%, -50%); background:rgba(211,47,47,0.95); color:#fff; font-size:2.2rem; font-weight:900; padding:20px 40px; border-radius:12px; z-index:300; opacity:0; pointer-events:none; transition:opacity 0.2s ease; white-space:nowrap; box-shadow:0 10px 30px rgba(0,0,0,0.5); display:none; }
     </style>
 </head>
 <body>
@@ -230,8 +233,9 @@
             <div id="step-post-match-choice" style="display:none;">
                 <div style="text-align: center; margin-bottom: 20px;"><span class="team-badge">データ送信完了</span></div>
                 <h3 style="text-align:center; margin-bottom:20px; color:var(--text);">次の行動を選択してください</h3>
-                <button class="confirm-btn gold" onclick="backToMatchSelect()">担当マッチ選択 (空きコートを手伝う)</button>
-                <button class="confirm-btn" style="background:#555;" onclick="showFinalResult()">試合終了 (団体戦最終結果へ)</button>
+                <button class="confirm-btn gold" onclick="backToMatchSelect()">📝 担当マッチ選択 (空きコートを手伝う)</button>
+                <button class="confirm-btn" style="background:#00796b;" onclick="location.reload()">🚪 スコア入力終了 (画面を閉じる)</button>
+                <button class="confirm-btn" style="background:#555;" onclick="showFinalResultMulti(event)">📊 試合終了 (団体戦最終結果へ)</button>
             </div>
 
             <div id="step-4" style="display:none;">
@@ -239,12 +243,14 @@
                 <h2 style="text-align:center; color: var(--text); font-size:2rem; margin-bottom:5px;" id="final-team-score">2 - 1</h2>
                 <h1 style="text-align:center; color: var(--blue); font-size:2.2rem; font-weight:900; margin-bottom:20px;" id="final-winner-text">岩手選抜 WIN!</h1>
                 <div id="final-match-list" style="margin-bottom:20px;"></div>
-                <button class="confirm-btn gold" onclick="location.reload()">次の試合へ ➔</button>
+                <button class="confirm-btn gold" onclick="location.reload()">初めに戻る ➔</button>
             </div>
         </div>
     </div>
 
     <div class="app" id="main-app">
+        <div id="flash-msg" class="flash-overlay">ダブルフォルト!</div>
+
         <div class="header">
             <div style="flex: 1; display:flex; flex-direction:column; justify-content:center;">
                 <div style="font-size:0.7rem; font-weight:bold; color:var(--text-dim);"><span id="disp-court-main">サン1</span><span style="background:var(--team-bg); color:var(--team-gold); padding:2px 6px; border-radius:4px; margin-left:4px;">M<span id="app-matchNum">1</span></span></div>
@@ -324,15 +330,15 @@
         // --- アプリのグローバル状態管理 ---
         let appMode = 'single'; // 'single', 'host', 'guest'
         let roomCode = '';
-        let TS = { gender: '男子', meta: { tourney: '', stage: '', court: 'sun_1', scorer: '' }, teamL: "岩手選抜", teamR: "", matchOrders: [ {A:'', B:'', C:'', D:''}, {A:'', B:'', C:'', D:''}, {A:'', B:'', C:'', D:''} ], matchResults: [], firstServeTeam: null, winsL: 0, winsR: 0, currentMatchNum: 1, maxMatch: 3, roomCode: '' };
+        // ★修正：初期値に maxG と winG を含める
+        let TS = { gender: '男子', meta: { tourney: '', stage: '', court: 'sun_1', scorer: '', maxG: 7, winG: 4 }, teamL: "岩手選抜", teamR: "", matchOrders: [ {A:'', B:'', C:'', D:''}, {A:'', B:'', C:'', D:''}, {A:'', B:'', C:'', D:''} ], matchResults: [], firstServeTeam: null, winsL: 0, winsR: 0, currentMatchNum: 1, maxMatch: 3, roomCode: '' };
         let S = getInitialMatchState();
         let historyStack = [];
 
-        function getInitialMatchState() { return { maxG: 7, winG: 4, gL: 0, gR: 0, pL: 0, pR: 0, totalP: 0, fault: 0, isFinal: false, startTeam: null, curServTeam: null, sOrder: [], rOrder: [], names: { A: '選手A', B: '選手B', C: '選手C', D: '選手D' }, stats: { A: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, B: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, C: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, D: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} } }, hist: [], log: [], isMatchCompleted: false }; }
+        function getInitialMatchState() { return { maxG: TS.meta.maxG || 7, winG: TS.meta.winG || 4, gL: 0, gR: 0, pL: 0, pR: 0, totalP: 0, fault: 0, isFinal: false, startTeam: null, curServTeam: null, sOrder: [], rOrder: [], names: { A: '選手A', B: '選手B', C: '選手C', D: '選手D' }, stats: { A: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, B: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, C: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, D: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} } }, hist: [], log: [], isMatchCompleted: false }; }
 
         window.onload = () => { updateRoster(); };
 
-        // ★ モード選択
         function setMode(mode) {
             appMode = mode;
             step(mode === 'guest' ? 'join' : 0);
@@ -350,10 +356,18 @@
 
         function selGender(g) { TS.gender = g; const btns = document.getElementById('gender-opts').querySelectorAll('.opt-btn'); btns[0].className = `opt-btn ${g === '男子' ? 'sel-gold' : ''}`; btns[1].className = `opt-btn ${g === '女子' ? 'sel-gold' : ''}`; updateRoster(); }
         function updateRoster() { const list = ROSTER[TS.gender] || []; const html = `<option value="">-- 選択 --</option>` + list.map(n => `<option value="${n}">${n}</option>`).join(''); for(let i=1; i<=3; i++) { document.getElementById(`o${i}-A`).innerHTML = html; document.getElementById(`o${i}-B`).innerHTML = html; } document.getElementById('nm-A').innerHTML = html; document.getElementById('nm-B').innerHTML = html; }
-        function selMatch(n) { S.maxG = n; S.winG = n === 7 ? 4 : 3; const btns = document.getElementById('match-opts').querySelectorAll('.opt-btn'); btns[0].className = `opt-btn ${n === 5 ? 'sel-gold' : ''}`; btns[1].className = `opt-btn ${n === 7 ? 'sel-gold' : ''}`; }
+        
+        // ★修正：選択されたゲーム数をホストの設定(TS.meta)に保存する
+        function selMatch(n) { 
+            TS.meta.maxG = n; TS.meta.winG = n === 7 ? 4 : 3; 
+            if(S) { S.maxG = TS.meta.maxG; S.winG = TS.meta.winG; }
+            const btns = document.getElementById('match-opts').querySelectorAll('.opt-btn'); 
+            btns[0].className = `opt-btn ${n === 5 ? 'sel-gold' : ''}`; 
+            btns[1].className = `opt-btn ${n === 7 ? 'sel-gold' : ''}`; 
+        }
+        
         function selMatchToLock(n) { document.getElementById('sel-match-num').value = n; for(let i=1; i<=3; i++) { document.getElementById(`ms-btn-${i}`).classList.remove('sel-gold'); } document.getElementById(`ms-btn-${n}`).classList.add('sel-gold'); }
 
-        // ★ 初期設定完了時の分岐（ホスト部屋作成 or 通常進行）
         async function handleSetupComplete() {
             TS.teamR = document.getElementById('m-teamR').value || "相手チーム";
             TS.meta.tourney = document.getElementById('m-tourney').value;
@@ -381,7 +395,6 @@
             }
         }
 
-        // ★ ゲストとして部屋に入る
         async function joinRoom() {
             const codeInput = document.getElementById('join-code-input').value;
             if(!codeInput) return;
@@ -392,6 +405,8 @@
                 if(res.error) { alert("部屋が見つかりません。"); } 
                 else {
                     TS = res.hostData; roomCode = codeInput; TS.roomCode = roomCode;
+                    // ★修正：ゲストが合流した際に、ホストのゲーム設定(5G/7G)を適用する
+                    S.maxG = TS.meta.maxG || 7; S.winG = TS.meta.winG || 4;
                     document.getElementById('display-room-code').textContent = roomCode;
                     step('match-select');
                 }
@@ -399,7 +414,6 @@
             btn.textContent = "部屋に入る ➔"; btn.disabled = false;
         }
 
-        // ★ 担当マッチとコートのロック（排他制御）を実行して開始
         async function lockAndStartMatch() {
             const matchNum = parseInt(document.getElementById('sel-match-num').value);
             const court = document.getElementById('sel-court-multi').value;
@@ -441,7 +455,6 @@
         
         function confirmStep2() { document.getElementById('modal').classList.add('hidden'); update(); sendToLive(); }
         
-        // ★ 2ゲーム目以降は陣営選択をスキップするロジック
         function step(n) { 
             document.querySelectorAll('#modal > .modal-card > div').forEach(el => el.style.display = 'none'); 
             document.getElementById('step-' + n).style.display = 'block'; 
@@ -466,7 +479,26 @@
         let _act = {}; function act(side, p, type) { _act = { side, p, type }; showSM(type, p); }
         function showSM(type, p, prefix = '') { const sm = document.getElementById('sm-body'); sm.innerHTML = ''; let list; const inf = getServ(); const isServer = (p === inf.s); const isReceiver = (p === inf.r); if (type === 'p') { list = isServer ? MENUS['p_server'] : (isReceiver ? MENUS['p_receiver'] : MENUS['p_standard']); } else if (MENUS[type]) { list = MENUS[type]; } else { list = type.startsWith('p_detail_') ? MENUS['p_shot'] : (type.startsWith('m_detail_') ? MENUS['m_shot'] : MENUS['p_server']); } document.getElementById('sm-title').textContent = type.startsWith('p') ? '得点内容' : 'ミス内容'; list.forEach(item => { if (item.k === 'recv' && !isReceiver) return; const b = document.createElement('button'); b.className = 'sm-btn'; b.innerHTML = `<div style="font-size:1.5rem">${item.i}</div><div style="font-size:0.75rem">${item.l}</div>`; b.onclick = () => { if (item.sub) { let nextPre = prefix; if (item.k === 'recv') nextPre = 'recv_'; else nextPre += item.k + '_'; showSM(item.sub, p, nextPre); } else { commit(prefix + item.k); } }; sm.appendChild(b); }); const back = document.createElement('button'); back.className = 'sm-back'; if (type === 'p' || type === 'm') { back.textContent = '閉じる'; back.onclick = () => { document.getElementById('submenu').classList.remove('open'); }; } else { back.textContent = '戻る'; back.onclick = () => { showSM(type.startsWith('p') || type.startsWith('r_ace') ? 'p' : 'm', p); }; } sm.appendChild(back); document.getElementById('submenu').classList.add('open'); }
         function commit(sub) { historyStack.push(JSON.stringify(S)); const { side, p, type } = _act; const inf = getServ(); S.stats[inf.s].st++; if (S.fault === 0) S.stats[inf.s].fi++; if (type === 'p') { S.stats[p].p++; if (sub) S.stats[p].pt[sub] = (S.stats[p].pt[sub] || 0) + 1; S.hist.push(side); side === 'L' ? S.pL++ : S.pR++; } else { S.stats[p].m++; if (sub) { S.stats[p].mt[sub] = (S.stats[p].mt[sub] || 0) + 1; } S.hist.push(side === 'L' ? 'R' : 'L'); side === 'L' ? S.pR++ : S.pL++; } S.totalP++; resetFaultBtn(); document.getElementById('submenu').classList.remove('open'); if (!checkEnd()) { update(); sendToLive(); } }
-        function handleFault() { const inf = getServ(); if (S.fault === 0) { S.fault = 1; const btn = document.getElementById('fault-btn'); btn.textContent = "2nd SERVICE"; btn.classList.add('warn'); } else { historyStack.push(JSON.stringify(S)); S.stats[inf.s].st++; S.stats[inf.s].m++; S.stats[inf.s].mt['df'] = (S.stats[inf.s].mt['df'] || 0) + 1; S.hist.push(inf.t === 0 ? 'R' : 'L'); inf.t === 0 ? S.pR++ : S.pL++; S.totalP++; resetFaultBtn(); if (!checkEnd()) { update(); sendToLive(); } } }
+
+        // ★ 修正：ダブルフォルト時のUIフラッシュ表示
+        function showFlash(msg) {
+            const el = document.getElementById('flash-msg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.opacity = 1, 10);
+            setTimeout(() => { el.style.opacity = 0; setTimeout(()=>el.style.display='none', 200); }, 1200);
+        }
+
+        function handleFault() { 
+            const inf = getServ(); 
+            if (S.fault === 0) { 
+                S.fault = 1; const btn = document.getElementById('fault-btn'); btn.textContent = "2nd SERVICE"; btn.classList.add('warn'); 
+            } else { 
+                showFlash("ダブルフォルト!"); // 画面にフラッシュ表示
+                historyStack.push(JSON.stringify(S)); S.stats[inf.s].st++; S.stats[inf.s].m++; S.stats[inf.s].mt['df'] = (S.stats[inf.s].mt['df'] || 0) + 1; S.hist.push(inf.t === 0 ? 'R' : 'L'); inf.t === 0 ? S.pR++ : S.pL++; S.totalP++; resetFaultBtn(); if (!checkEnd()) { update(); sendToLive(); } 
+            } 
+        }
+
         function resetFaultBtn() { S.fault = 0; const btn = document.getElementById('fault-btn'); btn.textContent = "FAULT"; btn.classList.remove('warn'); }
         function checkEnd() { const border = S.isFinal ? 7 : 4; let winGame = null; if (S.pL >= border && S.pL - S.pR >= 2) winGame = 'L'; else if (S.pR >= border && S.pR - S.pL >= 2) winGame = 'R'; if (winGame) { S.log.push({ n: S.gL + S.gR + 1, L: S.pL, R: S.pR, w: winGame, flow: [...S.hist], fin: S.isFinal }); winGame === 'L' ? S.gL++ : S.gR++; update(); sendToLive(); setTimeout(() => { if (S.gL === S.winG || S.gR === S.winG) { showResult(); } else { S.pL = 0; S.pR = 0; S.totalP = 0; S.hist = []; S.curServTeam = 1 - S.curServTeam; if ((S.gL + S.gR) === S.maxG - 1) S.isFinal = true; alert('チェンジ'); step(1); document.getElementById('modal').classList.remove('hidden'); } }, 100); return true; } return false; }
         function undo() { if(historyStack.length > 0) { S = JSON.parse(historyStack.pop()); resetFaultBtn(); update(); sendToLive(); } }
@@ -477,9 +509,26 @@
         function sendToLive() { S.meta = { ...TS.meta, gender: TS.gender }; const payload = { type: "team_match", TS: TS, S: S, lastUpdate: Date.now() }; fetch(GAS_URL_LIVE, { method: 'POST', body: JSON.stringify(payload) }).catch(e => console.error(e)); }
         function sendToRecord() { const btn = document.getElementById('btn-send-record'); btn.innerHTML = "送信中..."; btn.disabled = true; S.meta = { ...TS.meta, gender: TS.gender }; const payload = { type: "team_match", teamData: TS, matchData: S }; fetch(GAS_URL_RECORD, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }).then(() => { btn.innerHTML = "✓ 送信済み"; btn.style.background = "#555"; document.getElementById('btn-next-match').style.display = "block"; }).catch(() => { alert("エラー"); btn.disabled = false; btn.innerHTML = "再送信"; }); }
         
+        // 最終結果のリスト描画用ヘルパー
+        function renderFinalList(results) {
+            let html = '';
+            for(let i=0; i<3; i++) {
+                const r = results[i];
+                if(r) {
+                    html += `<div style="background:var(--surface2); margin-bottom:8px; padding:10px; border-radius:8px; border:1px solid var(--border);">
+                        <div style="font-weight:bold; font-size:0.8rem; margin-bottom:5px; color:var(--text-dim);">第${i+1}マッチ</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="flex:1; text-align:right; font-weight:bold; color:var(--blue);">${r.A}<br><span style="font-size:0.7rem">${r.B}</span></div>
+                            <div style="padding:0 15px; font-family:'Roboto Mono', monospace; font-size:1.5rem; font-weight:900;">${r.gL} - ${r.gR}</div>
+                            <div style="flex:1; text-align:left; font-weight:bold; color:var(--red);">${r.C}<br><span style="font-size:0.7rem">${r.D}</span></div>
+                        </div></div>`;
+                }
+            }
+            document.getElementById('final-match-list').innerHTML = html;
+        }
+
         function showResult() { document.getElementById('res-match-num').textContent = TS.currentMatchNum; document.getElementById('res-winner').textContent = S.gL > S.gR ? TS.teamL : TS.teamR; document.getElementById('res-score').textContent = `${S.gL} - ${S.gR}`; const tbl = document.getElementById('res-score-tbl'); let h = `<tr><th></th>${S.log.map((g, i) => `<th>G${i + 1}</th>`).join('')}<th>計</th></tr>`; h += `<tr><td style="color:var(--blue)">岩手選抜</td>${S.log.map(g => `<td>${g.L}</td>`).join('')}<td>${S.gL}</td></tr>`; h += `<tr><td style="color:var(--red)">相手</td>${S.log.map(g => `<td>${g.R}</td>`).join('')}<td>${S.gR}</td></tr>`; tbl.innerHTML = h; const stTbl = document.getElementById('res-stats-tbl'); stTbl.innerHTML = ''; ['A', 'B', 'C', 'D'].forEach(p => { const s = S.stats[p]; const rate = s.st > 0 ? Math.round(s.fi / s.st * 100) + '%' : '-'; stTbl.innerHTML += `<tr><td>${S.names[p]}</td><td>${s.p}</td><td>${s.m}</td><td>${rate}</td></tr>`; }); document.getElementById('btn-next-match').innerHTML = TS.currentMatchNum >= 3 ? "結果へ" : "次へ"; step(3); document.getElementById('modal').classList.remove('hidden'); }
         
-        // ★ 試合終了後の分岐処理（シングル vs 複数コート）
         function processTeamResult() { 
             S.gL > S.gR ? TS.winsL++ : TS.winsR++; 
             TS.matchResults[TS.currentMatchNum - 1] = { A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR }; 
@@ -493,18 +542,16 @@
             }
         }
         
-        // シングル用：次のマッチ準備
         function prepNextMatch() {
             TS.currentMatchNum++; 
-            const mG = S.maxG, wG = S.winG; S = getInitialMatchState(); S.maxG = mG; S.winG = wG; historyStack = [];
+            const mG = TS.meta.maxG || 7, wG = TS.meta.winG || 4; S = getInitialMatchState(); S.maxG = mG; S.winG = wG; historyStack = [];
             applyMatchOrderToS(TS.currentMatchNum);
             resetSendBtn();
             step(1);
         }
 
-        // マルチ用：担当マッチ選択画面（合流）に戻る
         function backToMatchSelect() {
-            const mG = S.maxG, wG = S.winG; S = getInitialMatchState(); S.maxG = mG; S.winG = wG; historyStack = [];
+            const mG = TS.meta.maxG || 7, wG = TS.meta.winG || 4; S = getInitialMatchState(); S.maxG = mG; S.winG = wG; historyStack = [];
             resetSendBtn();
             step('match-select');
         }
@@ -518,7 +565,52 @@
             sBtns.forEach(b => b.classList.remove('sel-gold'));
         }
         
-        function showFinalResult() { step(4); document.getElementById('final-team-score').textContent = `${TS.winsL} - ${TS.winsR}`; document.getElementById('final-winner-text').textContent = TS.winsL > TS.winsR ? "岩手選抜 WIN!" : "相手校 WIN!"; }
+        // ★ 修正：シングルモード用の結果表示
+        function showFinalResult() { 
+            step(4); 
+            document.getElementById('final-team-score').textContent = `${TS.winsL} - ${TS.winsR}`; 
+            document.getElementById('final-winner-text').textContent = TS.winsL > TS.winsR ? "岩手選抜 WIN!" : "相手校 WIN!"; 
+            renderFinalList(TS.matchResults);
+        }
+
+        // ★ 修正：複数コートモード用の結果統合・集計表示
+        async function showFinalResultMulti(e) {
+            const btn = e.currentTarget;
+            const originalText = btn.textContent;
+            btn.textContent = "データ集計中..."; btn.disabled = true;
+            try {
+                const res = await fetch(GAS_URL_LIVE + '?all=true').then(r=>r.json());
+                const matchKey = `${TS.meta.tourney}_${TS.gender}_${TS.teamL}_${TS.teamR}`;
+                
+                // 集計用の変数
+                let maxWinsL = TS.winsL;
+                let maxWinsR = TS.winsR;
+                let mergedResults = [...TS.matchResults];
+                
+                // GASから取得した全コートのデータから同じ試合のデータを結合
+                res.forEach(data => {
+                    if(data.type === 'team_match' && data.TS) {
+                        const mKey = `${data.TS.meta.tourney}_${data.TS.gender}_${data.TS.teamL}_${data.TS.teamR}`;
+                        if(mKey === matchKey) {
+                            if(data.TS.winsL > maxWinsL) maxWinsL = data.TS.winsL;
+                            if(data.TS.winsR > maxWinsR) maxWinsR = data.TS.winsR;
+                            if(data.TS.matchResults) {
+                                data.TS.matchResults.forEach((r, i) => { if(r) mergedResults[i] = r; });
+                            }
+                        }
+                    }
+                });
+                
+                step(4);
+                document.getElementById('final-team-score').textContent = `${maxWinsL} - ${maxWinsR}`; 
+                document.getElementById('final-winner-text').textContent = maxWinsL > maxWinsR ? "岩手選抜 WIN!" : "相手校 WIN!";
+                renderFinalList(mergedResults);
+            } catch(err) {
+                alert("集計エラーが発生しました。");
+            }
+            btn.textContent = originalText; btn.disabled = false;
+        }
+
     </script>
 </body>
 </html>
