@@ -150,6 +150,10 @@
                     </select>
                     <input class="name-input" id="m-scorer" placeholder="スコア記入者名">
                 </div>
+
+                <div id="host-only-msg" style="display:none; background:#e3f2fd; border:1px solid #90caf9; padding:12px; border-radius:8px; margin-top:15px; text-align:center; font-size:0.85rem; font-weight:bold; color:var(--blue);">
+                    💡 会場・コートと記入者名は、<br>次の「担当マッチ選択画面」でそれぞれ入力します。
+                </div>
                 
                 <button class="confirm-btn gold" id="btn-goto-step1" onclick="handleSetupComplete()">次へ進む ➔</button>
                 <button class="opt-btn" onclick="location.reload()" style="width:100%; margin-top:15px; border:none; background:transparent;">↩️ モード選択に戻る</button>
@@ -290,7 +294,6 @@
     <script>
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log("SW Registered")); }
 
-        // ★ 指定されたURLに書き換え済みです ★
         const GAS_URL_RECORD = "https://script.google.com/macros/s/AKfycbwpjlnTx4owDg88n9S7GDIp47F1ayVihjtkPM-WvHarKa4UaMELdxuB4GWy4nJDeSxV_g/exec";
         const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbydvwdFFSZREQITH7aI3SZ0fVwhXd6dQaN1utfbmgDiLXHzUEjWcRNvg177TXXrC6QA/exec";
 
@@ -336,9 +339,11 @@
             
             if (mode === 'single') {
                 document.getElementById('single-only-inputs').style.display = 'block';
+                document.getElementById('host-only-msg').style.display = 'none';
                 document.getElementById('btn-goto-step1').textContent = "第1マッチ詳細へ進む ➔";
             } else if (mode === 'host') {
                 document.getElementById('single-only-inputs').style.display = 'none';
+                document.getElementById('host-only-msg').style.display = 'block';
                 document.getElementById('btn-goto-step1').textContent = "部屋を作成して進む ➔";
             }
         }
