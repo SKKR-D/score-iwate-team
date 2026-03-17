@@ -82,26 +82,46 @@
                 const matchKey = `${TS.meta.tourney}_${TS.gender}_${TS.teamL}_${TS.teamR}`;
                 
                 if (!mergedTeams[matchKey]) {
+                    // ★修正：初期化時に確実に全データをコピー
                     mergedTeams[matchKey] = { TS: JSON.parse(JSON.stringify(TS)), courts: [], activeMatchesData: {} };
                     if(!mergedTeams[matchKey].TS.matchResults) mergedTeams[matchKey].TS.matchResults = [];
+                    if(!mergedTeams[matchKey].TS.matchOrders) mergedTeams[matchKey].TS.matchOrders = [{A:'',B:'',C:'',D:''},{A:'',B:'',C:'',D:''},{A:'',B:'',C:'',D:''}];
                 }
                 
                 const courtDisp = COURT_NAME_MAP[data.S.meta.court] || data.S.meta.court;
                 if(!mergedTeams[matchKey].courts.includes(courtDisp)) mergedTeams[matchKey].courts.push(courtDisp);
 
+                // 結果とオーダーをマージ
                 if (TS.matchResults) {
                     TS.matchResults.forEach((res, idx) => { if (res) mergedTeams[matchKey].TS.matchResults[idx] = res; });
                 }
+                if (TS.matchOrders) {
+                    TS.matchOrders.forEach((o, idx) => { if (o && o.A && o.A !== '-') mergedTeams[matchKey].TS.matchOrders[idx] = o; });
+                }
+                
+                // playModeをマージ（どれか一つでも設定されていれば引き継ぐ）
+                if (TS.meta && TS.meta.playMode) {
+                    mergedTeams[matchKey].TS.meta.playMode = TS.meta.playMode;
+                }
 
                 mergedTeams[matchKey].activeMatchesData[TS.currentMatchNum] = data.S;
-                if(TS.winsL > mergedTeams[matchKey].TS.winsL) mergedTeams[matchKey].TS.winsL = TS.winsL;
-                if(TS.winsR > mergedTeams[matchKey].TS.winsR) mergedTeams[matchKey].TS.winsR = TS.winsR;
             });
 
             wrap.innerHTML = Object.values(mergedTeams).map(group => {
                 const TS = group.TS;
                 const courtDisplay = group.courts.join(', ');
-                const isTeamMatchFinished = (TS.winsL >= 2 || TS.winsR >= 2);
+                
+                // 勝敗数の再計算
+                let wL = 0, wR = 0;
+                for(let i=0; i<3; i++) {
+                    if(TS.matchResults[i]) {
+                        TS.matchResults[i].gL > TS.matchResults[i].gR ? wL++ : wR++;
+                    }
+                }
+                TS.winsL = wL; TS.winsR = wR;
+
+                const playMode = TS.meta.playMode || 'all';
+                const isTeamMatchFinished = (playMode === 'first_to_2' && (wL >= 2 || wR >= 2)) || (TS.matchResults.filter(r=>r).length === 3);
                 const cardOpacity = isTeamMatchFinished ? '0.85' : '1';
                 
                 let html = `
@@ -151,6 +171,17 @@
                                 <div class="m-players" style="text-align:right;color:var(--red);">${activeS.names.C}<br>${activeS.names.D}</div>
                             </div>
                         </a>`;
+                    } else if (playMode === 'first_to_2' && isTeamMatchFinished) {
+                        // ★ 修正：先取法で勝敗が決まった後の未プレイ試合は「打ち切り」表示
+                        html += `
+                        <div class="match-row waiting" style="opacity:0.5;">
+                            <div class="match-title"><span class="badge-waiting" style="background:#ddd;">第${matchNum}マッチ 打ち切り</span></div>
+                            <div class="match-content">
+                                <div class="m-players" style="text-align:left;color:#999;">${pA}<br>${pB}</div>
+                                <div class="m-score" style="font-family:'Roboto Mono', monospace; color:#ccc; font-weight:bold;">-</div>
+                                <div class="m-players" style="text-align:right;color:#999;">${pC}<br>${pD}</div>
+                            </div>
+                        </div>`;
                     } else {
                         html += `
                         <div class="match-row waiting">
