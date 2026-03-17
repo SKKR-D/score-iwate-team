@@ -18,6 +18,11 @@
         .mc-top { background: var(--team-bg); color: var(--team-gold); padding: 8px 12px; display: flex; justify-content: space-between; font-weight: bold; font-size: 0.85rem; }
         
         .team-battle-area { padding: 15px; text-align: center; border-bottom: 2px dashed var(--border); background: #ffffff; }
+        .team-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 900; margin-bottom: 10px; }
+        .team-status.running { background: #e3f2fd; color: #1976d2; }
+        .team-status.winner { background: #fff8e1; color: #f57f17; border: 2px solid #fbc02d; font-size: 1.15rem; }
+        .team-status.draw { background: #f5f5f5; color: #616161; border: 2px solid #9e9e9e; font-size: 1.1rem; }
+        
         .tba-names { font-size: 1.3rem; font-weight: 900; display: flex; justify-content: space-around; margin-bottom: 5px; align-items: center; }
         .tba-wins { font-family: 'Roboto Mono', monospace; font-size: 3.5rem; font-weight: 900; color: var(--blue); line-height: 1; }
         
@@ -27,18 +32,23 @@
         .match-row.active { background: #e8f5e9; border-left: 5px solid var(--team-gold); transition: 0.2s; }
         .match-row.active:hover { background: #c8e6c9; }
         .match-row.completed { background: #f3f4f6; border-left: 5px solid #9ca3af; }
+        .match-row.aborted { background: #f9f9f9; border-left: 5px solid #e0e0e0; opacity: 0.6; }
         .match-row.waiting { background: #ffffff; border-left: 5px solid transparent; }
         
         .match-title { font-size: 0.75rem; font-weight: bold; color: var(--text-dim); text-align: center; margin-bottom: 8px; }
         .badge-live { color: var(--team-bg); font-weight: 900; background: #c8e6c9; border-radius: 4px; padding: 4px 10px; display: inline-block; }
         .badge-finished { color: #fff; font-weight: 900; background: #9ca3af; border-radius: 4px; padding: 4px 10px; display: inline-block; }
-        .badge-waiting { color: #999; font-weight: bold; background: #f1f1f1; border-radius: 4px; padding: 2px 8px;}
+        .badge-waiting { color: #999; font-weight: bold; background: #f1f1f1; border-radius: 4px; padding: 2px 8px; display: inline-block;}
+        .badge-aborted { color: #777; font-weight: bold; background: #e0e0e0; border-radius: 4px; padding: 2px 8px; display: inline-block;}
 
         .match-content { display: flex; justify-content: space-between; align-items: center; }
-        .m-players { font-size: 0.85rem; font-weight: bold; width: 30%; line-height: 1.3; }
-        .m-score { width: 40%; display: flex; justify-content: center; align-items: center; gap: 6px; }
+        .m-players { font-size: 0.85rem; font-weight: bold; line-height: 1.3; }
+        .m-players.left { text-align: left; width: 26%; }
+        .m-players.right { text-align: right; width: 26%; }
+        
+        .m-score-area { width: 48%; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .g-num { font-family: 'Roboto Mono', monospace; font-size: 1.6rem; font-weight: 900; width: 20px; text-align: center; }
-        .p-box { display: flex; background: #333; color: #fff; padding: 4px 8px; border-radius: 6px; font-family: 'Roboto Mono', monospace; font-size: 1rem; align-items: center; gap: 4px; }
+        .p-box { display: flex; justify-content: center; align-items: center; background: #333; color: #fff; padding: 4px 8px; border-radius: 6px; font-family: 'Roboto Mono', monospace; font-size: 1rem; gap: 4px; width: 65px; height: 30px; }
     </style>
 </head>
 <body>
@@ -75,14 +85,18 @@
                 return; 
             }
 
+            // 【1】データの完璧な名寄せ（統合）
             const mergedTeams = {};
             matches.forEach(data => {
                 if(data.type !== 'team_match' || !data.TS) return;
                 const TS = data.TS;
-                const matchKey = `${TS.meta.tourney}_${TS.gender}_${TS.teamL}_${TS.teamR}`;
+                
+                // 部屋コードがあれば最優先で統合、なければ大会名等で統合
+                const roomKey = TS.roomCode ? `ROOM_${TS.roomCode}` : null;
+                const fallbackKey = `${(TS.meta.tourney||'').trim()}_${TS.gender}_${(TS.teamL||'').trim()}_${(TS.teamR||'').trim()}`;
+                const matchKey = roomKey || fallbackKey;
                 
                 if (!mergedTeams[matchKey]) {
-                    // ★修正：初期化時に確実に全データをコピー
                     mergedTeams[matchKey] = { TS: JSON.parse(JSON.stringify(TS)), courts: [], activeMatchesData: {} };
                     if(!mergedTeams[matchKey].TS.matchResults) mergedTeams[matchKey].TS.matchResults = [];
                     if(!mergedTeams[matchKey].TS.matchOrders) mergedTeams[matchKey].TS.matchOrders = [{A:'',B:'',C:'',D:''},{A:'',B:'',C:'',D:''},{A:'',B:'',C:'',D:''}];
@@ -98,101 +112,124 @@
                 if (TS.matchOrders) {
                     TS.matchOrders.forEach((o, idx) => { if (o && o.A && o.A !== '-') mergedTeams[matchKey].TS.matchOrders[idx] = o; });
                 }
-                
-                // playModeをマージ（どれか一つでも設定されていれば引き継ぐ）
-                if (TS.meta && TS.meta.playMode) {
-                    mergedTeams[matchKey].TS.meta.playMode = TS.meta.playMode;
-                }
+                if (TS.meta && TS.meta.playMode) mergedTeams[matchKey].TS.meta.playMode = TS.meta.playMode;
 
                 mergedTeams[matchKey].activeMatchesData[TS.currentMatchNum] = data.S;
             });
 
+            // 【2】描画処理（大きな1つのカードに3マッチを縦並び）
             wrap.innerHTML = Object.values(mergedTeams).map(group => {
                 const TS = group.TS;
                 const courtDisplay = group.courts.join(', ');
                 
-                // 勝敗数の再計算
-                let wL = 0, wR = 0;
+                // 勝敗数の正確な計算と完了数のカウント
+                let wL = 0, wR = 0, finishedCount = 0;
                 for(let i=0; i<3; i++) {
                     if(TS.matchResults[i]) {
+                        finishedCount++;
                         TS.matchResults[i].gL > TS.matchResults[i].gR ? wL++ : wR++;
                     }
                 }
                 TS.winsL = wL; TS.winsR = wR;
 
+                // 試合方式によるステータス判定
                 const playMode = TS.meta.playMode || 'all';
-                const isTeamMatchFinished = (playMode === 'first_to_2' && (wL >= 2 || wR >= 2)) || (TS.matchResults.filter(r=>r).length === 3);
-                const cardOpacity = isTeamMatchFinished ? '0.85' : '1';
+                let isTeamMatchFinished = false;
+                let statusHtml = `<div class="team-status running">団体戦 進行中</div>`;
+                
+                if (playMode === 'first_to_2') {
+                    if (wL >= 2) { isTeamMatchFinished = true; statusHtml = `<div class="team-status winner">${TS.teamL} 勝利！ ※打ち切り</div>`; }
+                    else if (wR >= 2) { isTeamMatchFinished = true; statusHtml = `<div class="team-status winner">${TS.teamR} 勝利！ ※打ち切り</div>`; }
+                } else {
+                    if (finishedCount === 3) {
+                        isTeamMatchFinished = true;
+                        if (wL > wR) statusHtml = `<div class="team-status winner">${TS.teamL} 勝利！</div>`;
+                        else if (wR > wL) statusHtml = `<div class="team-status winner">${TS.teamR} 勝利！</div>`;
+                        else statusHtml = `<div class="team-status draw">引き分け</div>`;
+                    }
+                }
+
+                const cardOpacity = isTeamMatchFinished ? '0.9' : '1';
                 
                 let html = `
                 <div class="m-card" style="opacity: ${cardOpacity};">
                     <div class="mc-top"><span>${courtDisplay}</span><span>${TS.meta.tourney || ''} (${TS.gender})</span></div>
                     <div class="team-battle-area">
+                        ${statusHtml}
                         <div class="tba-names"><span style="color:${isTeamMatchFinished ? '#555' : 'var(--blue)'};">${TS.teamL}</span><span style="font-size:0.9rem;color:#888;">VS</span><span style="color:${isTeamMatchFinished ? '#555' : 'var(--red)'};">${TS.teamR}</span></div>
-                        <div class="tba-wins"><span style="color:${isTeamMatchFinished ? '#555' : 'var(--blue)'};">${TS.winsL}</span><span style="font-family:'Roboto Mono', monospace; color:#ccc; margin:0 10px; font-size:2rem;">-</span><span style="color:${isTeamMatchFinished ? '#555' : 'var(--red)'};">${TS.winsR}</span></div>
+                        <div class="tba-wins"><span style="color:${isTeamMatchFinished ? '#555' : 'var(--blue)'};">${TS.winsL}</span><span style="font-family:'Roboto Mono', monospace; color:#ccc; margin:0 15px; font-size:2rem;">-</span><span style="color:${isTeamMatchFinished ? '#555' : 'var(--red)'};">${TS.winsR}</span></div>
                     </div>
                     <div class="match-list">`;
 
+                // 第1〜第3マッチのループ生成
                 for (let i = 0; i < 3; i++) {
                     const matchNum = i + 1;
                     const activeS = group.activeMatchesData[matchNum];
                     const res = TS.matchResults[i];
                     
                     const order = (TS.matchOrders && TS.matchOrders[i]) ? TS.matchOrders[i] : {A:'-', B:'-', C:'-', D:'-'};
-                    let pA = order.A || '-'; let pB = order.B || '-';
-                    let pC = order.C || '-'; let pD = order.D || '-';
+                    let pA = order.A || '-'; let pB = order.B || '';
+                    let pC = order.C || '-'; let pD = order.D || '';
 
-                    if (res) {
-                        html += `
-                        <div class="match-row completed">
-                            <div class="match-title"><span class="badge-finished">第${matchNum}マッチ 試合終了</span></div>
-                            <div class="match-content">
-                                <div class="m-players" style="text-align:left;color:#666;">${res.A}<br>${res.B}</div>
-                                <div class="m-score">
-                                    <div class="g-num" style="color:#666;">${res.gL}</div>
-                                    <div class="p-box" style="background:#9ca3af;"><span>-</span></div>
-                                    <div class="g-num" style="color:#666;">${res.gR}</div>
-                                </div>
-                                <div class="m-players" style="text-align:right;color:#666;">${res.C}<br>${res.D}</div>
-                            </div>
-                        </div>`;
-                    } else if (activeS && !activeS.isMatchCompleted && !isTeamMatchFinished) {
+                    // 状態の判定
+                    let mStatus = "waiting"; 
+                    if (res) mStatus = "completed";
+                    else if (isTeamMatchFinished) mStatus = "aborted"; // 先取法で勝負が決まった場合
+                    else if (activeS && !activeS.isMatchCompleted) mStatus = "active";
+
+                    let badgeText = "", badgeClass = "", scoreHtml = "";
+                    let colorL = "#999", colorR = "#999";
+                    let wrapTagStart = `<div class="match-row ${mStatus}">`;
+                    let wrapTagEnd = `</div>`;
+
+                    if (mStatus === "completed") {
+                        badgeText = "試合終了"; badgeClass = "badge-finished";
+                        colorL = "#555"; colorR = "#555";
+                        scoreHtml = `
+                            <div class="g-num" style="color:#555;">${res.gL}</div>
+                            <div class="p-box" style="background:#9ca3af; color:#fff;"><span>-</span></div>
+                            <div class="g-num" style="color:#555;">${res.gR}</div>
+                        `;
+                    } else if (mStatus === "aborted") {
+                        badgeText = "打ち切り"; badgeClass = "badge-aborted";
+                        colorL = "#aaa"; colorR = "#aaa";
+                        scoreHtml = `
+                            <div class="g-num" style="color:#ccc;">-</div>
+                            <div class="p-box" style="background:#e0e0e0; color:#aaa;"><span>-</span></div>
+                            <div class="g-num" style="color:#ccc;">-</div>
+                        `;
+                    } else if (mStatus === "active") {
+                        badgeText = "▶ 試合中 (詳細へ)"; badgeClass = "badge-live";
+                        colorL = "var(--blue)"; colorR = "var(--red)";
                         const d = getDisp(activeS.pL, activeS.pR, activeS.isFinal);
-                        html += `
-                        <a href="live.html?court=${activeS.meta.court}" class="match-row active">
-                            <div class="match-title"><span class="badge-live">▶ 第${matchNum}マッチ 試合中 (詳細へ)</span></div>
-                            <div class="match-content">
-                                <div class="m-players" style="text-align:left;color:var(--blue);">${activeS.names.A}<br>${activeS.names.B}</div>
-                                <div class="m-score">
-                                    <div class="g-num" style="color:var(--blue);">${activeS.gL}</div>
-                                    <div class="p-box"><span>${d.l}</span><span>-</span><span>${d.r}</span></div>
-                                    <div class="g-num" style="color:var(--red);">${activeS.gR}</div>
-                                </div>
-                                <div class="m-players" style="text-align:right;color:var(--red);">${activeS.names.C}<br>${activeS.names.D}</div>
-                            </div>
-                        </a>`;
-                    } else if (playMode === 'first_to_2' && isTeamMatchFinished) {
-                        // ★ 修正：先取法で勝敗が決まった後の未プレイ試合は「打ち切り」表示
-                        html += `
-                        <div class="match-row waiting" style="opacity:0.5;">
-                            <div class="match-title"><span class="badge-waiting" style="background:#ddd;">第${matchNum}マッチ 打ち切り</span></div>
-                            <div class="match-content">
-                                <div class="m-players" style="text-align:left;color:#999;">${pA}<br>${pB}</div>
-                                <div class="m-score" style="font-family:'Roboto Mono', monospace; color:#ccc; font-weight:bold;">-</div>
-                                <div class="m-players" style="text-align:right;color:#999;">${pC}<br>${pD}</div>
-                            </div>
-                        </div>`;
-                    } else {
-                        html += `
-                        <div class="match-row waiting">
-                            <div class="match-title"><span class="badge-waiting">第${matchNum}マッチ 試合前</span></div>
-                            <div class="match-content">
-                                <div class="m-players" style="text-align:left;color:#999;">${pA}<br>${pB}</div>
-                                <div class="m-score" style="font-family:'Roboto Mono', monospace; color:#ccc; font-weight:bold;">VS</div>
-                                <div class="m-players" style="text-align:right;color:#999;">${pC}<br>${pD}</div>
-                            </div>
-                        </div>`;
+                        scoreHtml = `
+                            <div class="g-num" style="color:var(--blue);">${activeS.gL}</div>
+                            <div class="p-box" style="background:#333; color:#fff;"><span>${d.l}</span><span style="margin:0 3px;">-</span><span>${d.r}</span></div>
+                            <div class="g-num" style="color:var(--red);">${activeS.gR}</div>
+                        `;
+                        wrapTagStart = `<a href="live.html?court=${activeS.meta.court}" class="match-row active" style="display:block; text-decoration:none;">`;
+                        wrapTagEnd = `</a>`;
+                    } else { // waiting
+                        badgeText = "試合前"; badgeClass = "badge-waiting";
+                        colorL = "#999"; colorR = "#999";
+                        scoreHtml = `
+                            <div class="g-num" style="color:#ccc;">0</div>
+                            <div class="p-box" style="background:#e0e0e0; color:#aaa;"><span>-</span></div>
+                            <div class="g-num" style="color:#ccc;">0</div>
+                        `;
                     }
+
+                    html += `
+                    ${wrapTagStart}
+                        <div class="match-title"><span class="${badgeClass}">第${matchNum}マッチ ${badgeText}</span></div>
+                        <div class="match-content">
+                            <div class="m-players left" style="color:${colorL};">${pA}<br><span style="font-size:0.75rem;">${pB}</span></div>
+                            <div class="m-score-area">
+                                ${scoreHtml}
+                            </div>
+                            <div class="m-players right" style="color:${colorR};">${pC}<br><span style="font-size:0.75rem;">${pD}</span></div>
+                        </div>
+                    ${wrapTagEnd}`;
                 }
                 html += `</div></div>`;
                 return html;
