@@ -58,7 +58,7 @@
 
         .app { width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); }
         .header { padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-        .game-score-display { font-family: 'Roboto Mono', monospace; font-size: 2.8rem; font-weight: 900; line-height: 1; }
+        .game-score-display { font-family: 'Roboto Mono', monospace; font-size: 2.8rem; font-weight: 900; line-height: 1; margin: 0; }
         .gs-left { color: var(--blue); } .gs-right { color: var(--red); }
         
         .score-area { flex: 1; display: flex; gap: 6px; padding: 6px; min-height: 0; }
@@ -135,7 +135,15 @@
                 <p class="input-label">📋 オーダー設定 (自チーム: 岩手選抜)</p>
                 <div class="order-box"><div class="order-title">第1マッチ</div><div class="order-row"><select id="o1-A"></select><select id="o1-B"></select></div><div class="order-vs">VS</div><div class="order-row"><input id="o1-C" placeholder="相手ペアC"><input id="o1-D" placeholder="相手ペアD"></div></div>
                 <div class="order-box"><div class="order-title">第2マッチ</div><div class="order-row"><select id="o2-A"></select><select id="o2-B"></select></div><div class="order-vs">VS</div><div class="order-row"><input id="o2-C" placeholder="相手ペアC"><input id="o2-D" placeholder="相手ペアD"></div></div>
-                <div class="order-box"><div class="order-title">第3マッチ</div><div class="order-row"><select id="o3-A"></select><select id="o3-B"></select></div><div class="order-vs">VS</div><div class="order-row"><input id="o3-C" placeholder="相手ペアC"><input id="o3-D" placeholder="相手ペアD"></div></div>
+                <div class="order-box">
+                    <div class="order-title" style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>第3マッチ</span>
+                        <label style="font-size:0.75rem; color:#d32f2f; cursor:pointer;"><input type="checkbox" id="o3-op"> オープン参加(不戦敗)</label>
+                    </div>
+                    <div class="order-row"><select id="o3-A"></select><select id="o3-B"></select></div>
+                    <div class="order-vs">VS</div>
+                    <div class="order-row"><input id="o3-C" placeholder="相手ペアC"><input id="o3-D" placeholder="相手ペアD"></div>
+                </div>
 
                 <p class="input-label">📌 ゲーム数</p>
                 <div class="option-group" id="match-opts">
@@ -262,7 +270,11 @@
             </div>
             <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;">
                 <div style="font-size:0.7rem; font-weight:bold; color:var(--text-dim);">Gカウント</div>
-                <div class="game-score-display"><span class="gs-left" id="gs-L">0</span><span style="font-size:1.5rem;color:#ccc;margin:0 4px;">-</span><span class="gs-right" id="gs-R">0</span></div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button onclick="forceGameWin('L')" style="background:var(--blue); color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer; padding:4px 8px; font-size:0.8rem; box-shadow:0 2px 4px rgba(0,0,0,0.2);">+1</button>
+                    <div class="game-score-display"><span class="gs-left" id="gs-L">0</span><span style="font-size:1.5rem;color:#ccc;margin:0 4px;">-</span><span class="gs-right" id="gs-R">0</span></div>
+                    <button onclick="forceGameWin('R')" style="background:var(--red); color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer; padding:4px 8px; font-size:0.8rem; box-shadow:0 2px 4px rgba(0,0,0,0.2);">+1</button>
+                </div>
             </div>
             <div style="flex: 1; display:flex; flex-direction:column; align-items:flex-end; justify-content:center;">
                 <div style="font-size:0.7rem; font-weight:bold; color:var(--text-dim);">団体</div>
@@ -312,6 +324,7 @@
             '女子': ['長根 一華', '粒來 明莉', '八島 かん奈', '黒坂 羽葵', '金野 心蘭', '齋藤 寧心', '澤舘 朋花', '佐々木 未虹', '佐々木 萌子', '髙橋 莉央', '菅原 雪杏', '千田 俐生']
         };
 
+        // ★修正③: メニューに「空振り(chip)」を追加し、ボレー・スマッシュの階層だけ専用の選択肢に分岐
         const MENUS = {
             p_server: [ { k: 'f', l: 'フォア', i: '🟦', sub: 'p_shot' }, { k: 'b', l: 'バック', i: '🟪', sub: 'p_shot' }, { k: 'ace', l: 'SA', i: '🎯', sub: 'p_ace_type' } ],
             p_receiver: [ { k: 'f', l: 'フォア', i: '🟦', sub: 'p_shot' }, { k: 'b', l: 'バック', i: '🟪', sub: 'p_shot' }, { k: 'ace', l: 'RA', i: '⚡', sub: 'r_ace_shot' } ],
@@ -322,9 +335,11 @@
             p_shot: [ { k: 'shoot', l: 'シュート', i: '⚡', sub: 'p_course' }, { k: 'lob', l: 'ロブ', i: '☁', sub: 'p_course' }, { k: 'volley', l: 'ボレー', i: '🛡', sub: 'p_course' }, { k: 'smash', l: 'スマッシュ', i: '💥', sub: 'p_course' }, { k: 'drop', l: 'ドロップ', i: '🌀', sub: 'p_course' } ],
             p_course: [ { k: 'cross', l: 'クロス', i: '↖' }, { k: 'rev', l: '逆クロス', i: '↗' }, { k: 'ctr', l: 'センター', i: '•' }, { k: 'str', l: 'ストレート', i: '↑' } ],
             m: [ { k: 'f', l: 'フォア', i: '🟦', sub: 'm_shot' }, { k: 'b', l: 'バック', i: '🟪', sub: 'm_shot' }, { k: 'recv', l: 'Rミス', i: '🎾', sub: 'm_recv_hand' } ],
-            m_shot: [ { k: 'shoot', l: 'シュート', i: '⚡', sub: 'm_course' }, { k: 'lob', l: 'ロブ', i: '☁', sub: 'm_course' }, { k: 'volley', l: 'ボレー', i: '🛡', sub: 'm_course' }, { k: 'smash', l: 'スマッシュ', i: '💥', sub: 'm_course' }, { k: 'drop', l: 'ドロップ', i: '🌀', sub: 'm_course' } ],
+            m_shot: [ { k: 'shoot', l: 'シュート', i: '⚡', sub: 'm_course' }, { k: 'lob', l: 'ロブ', i: '☁', sub: 'm_course' }, { k: 'volley', l: 'ボレー', i: '🛡', sub: 'm_course_v' }, { k: 'smash', l: 'スマッシュ', i: '💥', sub: 'm_course_v' }, { k: 'drop', l: 'ドロップ', i: '🌀', sub: 'm_course' } ],
             m_course: [ { k: 'cross', l: 'クロス', i: '↖', sub: 'm_err' }, { k: 'rev', l: '逆クロス', i: '↗', sub: 'm_err' }, { k: 'ctr', l: 'センター', i: '•', sub: 'm_err' }, { k: 'str', l: 'ストレート', i: '↑', sub: 'm_err' } ],
+            m_course_v: [ { k: 'cross', l: 'クロス', i: '↖', sub: 'm_err_v' }, { k: 'rev', l: '逆クロス', i: '↗', sub: 'm_err_v' }, { k: 'ctr', l: 'センター', i: '•', sub: 'm_err_v' }, { k: 'str', l: 'ストレート', i: '↑', sub: 'm_err_v' } ],
             m_err: [ { k: 'bout', l: 'Bアウト', i: '⬆' }, { k: 'sout', l: 'Sアウト', i: '➡' }, { k: 'net', l: 'ネット', i: '🔴' } ],
+            m_err_v: [ { k: 'bout', l: 'Bアウト', i: '⬆' }, { k: 'sout', l: 'Sアウト', i: '➡' }, { k: 'net', l: 'ネット', i: '🔴' }, { k: 'chip', l: '空振り', i: '💨' } ],
             m_recv_hand: [ { k: 'f', l: 'フォア', i: '🟦', sub: 'm_recv_type' }, { k: 'b', l: 'バック', i: '🟪', sub: 'm_recv_type' } ],
             m_recv_type: [ { k: 'lob', l: 'ロブ', i: '☁', sub: 'm_recv_course' }, { k: 'shoot', l: 'シュート', i: '⚡', sub: 'm_recv_course' }, { k: 'twist', l: 'ツイスト', i: '🌀', sub: 'm_recv_course' } ], 
             m_recv_course: [ { k: 'str', l: 'ストレート', i: '↑', sub: 'm_recv_err' }, { k: 'cross', l: 'クロス', i: '↖', sub: 'm_recv_err' }, { k: 'rev', l: '逆クロス', i: '↗', sub: 'm_recv_err' }, { k: 'ctr', l: 'センター', i: '•', sub: 'm_recv_err' } ],
@@ -334,7 +349,6 @@
         // --- アプリのグローバル状態管理 ---
         let appMode = 'single'; 
         let roomCode = '';
-        // ★修正: メタデータに maxG, winG, playMode を追加
         let TS = { gender: '男子', meta: { tourney: '', stage: '', court: 'sun_1', scorer: '', maxG: 7, winG: 4, playMode: 'all' }, teamL: "岩手選抜", teamR: "", matchOrders: [ {A:'', B:'', C:'', D:''}, {A:'', B:'', C:'', D:''}, {A:'', B:'', C:'', D:''} ], matchResults: [], firstServeTeam: null, winsL: 0, winsR: 0, currentMatchNum: 1, maxMatch: 3, roomCode: '' };
         let S = getInitialMatchState();
         let historyStack = [];
@@ -369,7 +383,6 @@
             btns[1].className = `opt-btn ${n === 7 ? 'sel-gold' : ''}`; 
         }
 
-        // ★追加：試合方式（全試合・先取法）の選択
         function selPlayMode(mode) {
             TS.meta.playMode = mode;
             const btns = document.getElementById('playmode-opts').querySelectorAll('.opt-btn');
@@ -383,7 +396,24 @@
             TS.teamR = document.getElementById('m-teamR').value || "相手チーム";
             TS.meta.tourney = document.getElementById('m-tourney').value;
             TS.meta.stage = document.getElementById('m-stage').value;
-            for(let i=1; i<=3; i++) { TS.matchOrders[i-1] = { A: document.getElementById(`o${i}-A`).value, B: document.getElementById(`o${i}-B`).value, C: document.getElementById(`o${i}-C`).value, D: document.getElementById(`o${i}-D`).value }; }
+            
+            // ★修正①: オープン参加チェックボックスの判定
+            for(let i=1; i<=3; i++) { 
+                let pA = document.getElementById(`o${i}-A`).value;
+                let pB = document.getElementById(`o${i}-B`).value;
+
+                if (i === 3 && document.getElementById('o3-op') && document.getElementById('o3-op').checked) {
+                    if (pA) pA += '(OP)';
+                    if (pB) pB += '(OP)';
+                }
+
+                TS.matchOrders[i-1] = { 
+                    A: pA, 
+                    B: pB, 
+                    C: document.getElementById(`o${i}-C`).value, 
+                    D: document.getElementById(`o${i}-D`).value 
+                }; 
+            }
 
             if (appMode === 'single') {
                 TS.meta.court = document.getElementById('m-court').value;
@@ -498,6 +528,24 @@
             setTimeout(() => { el.style.opacity = 0; setTimeout(()=>el.style.display='none', 200); }, 1200);
         }
 
+        // ★修正②: 強制的にゲームカウントだけを追加する機能
+        function forceGameWin(team) {
+            if(!confirm(`${team === 'L' ? '岩手選抜' : '相手'}に1ゲーム追加しますか？`)) return;
+            S.log.push({ n: S.gL + S.gR + 1, L: '-', R: '-', w: team, flow: [...S.hist], fin: S.isFinal });
+            team === 'L' ? S.gL++ : S.gR++;
+            update(); sendToLive();
+            
+            setTimeout(() => {
+                if (S.gL === S.winG || S.gR === S.winG) { 
+                    showResult(); 
+                } else { 
+                    S.pL = 0; S.pR = 0; S.totalP = 0; S.hist = []; S.curServTeam = 1 - S.curServTeam; 
+                    if ((S.gL + S.gR) === S.maxG - 1) S.isFinal = true; 
+                    alert('チェンジ'); step(1); document.getElementById('modal').classList.remove('hidden'); 
+                }
+            }, 100);
+        }
+
         function handleFault() { 
             const inf = getServ(); 
             if (S.fault === 0) { 
@@ -538,7 +586,14 @@
         function showResult() { document.getElementById('res-match-num').textContent = TS.currentMatchNum; document.getElementById('res-winner').textContent = S.gL > S.gR ? TS.teamL : TS.teamR; document.getElementById('res-score').textContent = `${S.gL} - ${S.gR}`; const tbl = document.getElementById('res-score-tbl'); let h = `<tr><th></th>${S.log.map((g, i) => `<th>G${i + 1}</th>`).join('')}<th>計</th></tr>`; h += `<tr><td style="color:var(--blue)">岩手選抜</td>${S.log.map(g => `<td>${g.L}</td>`).join('')}<td>${S.gL}</td></tr>`; h += `<tr><td style="color:var(--red)">相手</td>${S.log.map(g => `<td>${g.R}</td>`).join('')}<td>${S.gR}</td></tr>`; tbl.innerHTML = h; const stTbl = document.getElementById('res-stats-tbl'); stTbl.innerHTML = ''; ['A', 'B', 'C', 'D'].forEach(p => { const s = S.stats[p]; const rate = s.st > 0 ? Math.round(s.fi / s.st * 100) + '%' : '-'; stTbl.innerHTML += `<tr><td>${S.names[p]}</td><td>${s.p}</td><td>${s.m}</td><td>${rate}</td></tr>`; }); document.getElementById('btn-next-match').innerHTML = TS.currentMatchNum >= 3 ? "結果へ" : "次へ"; step(3); document.getElementById('modal').classList.remove('hidden'); }
         
         function processTeamResult() { 
-            S.gL > S.gR ? TS.winsL++ : TS.winsR++; 
+            // ★修正①: (OP)が含まれている場合は、実際のスコアに関係なく相手チーム（または岩手）の勝利として処理
+            let isL_OP = S.names.A.includes('(OP)') || S.names.B.includes('(OP)');
+            let isR_OP = S.names.C.includes('(OP)') || S.names.D.includes('(OP)');
+
+            if (isL_OP && !isR_OP) { TS.winsR++; } // 岩手がオープンの場合は相手勝利
+            else if (isR_OP && !isL_OP) { TS.winsL++; } // 相手がオープンの場合は岩手勝利
+            else { S.gL > S.gR ? TS.winsL++ : TS.winsR++; } // どちらも通常、あるいは両方オープンの場合はゲーム通り
+            
             TS.matchResults[TS.currentMatchNum - 1] = { A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR }; 
             S.isMatchCompleted = true;
             sendToLive();
@@ -580,9 +635,17 @@
         
         function showFinalResult() { 
             step(4); 
-            // 実際の勝敗結果から計算し直す
+            // 実際の勝敗結果から計算し直す（OPを考慮）
             let calcWinsL = 0, calcWinsR = 0;
-            TS.matchResults.forEach(r => { if(r) { r.gL > r.gR ? calcWinsL++ : calcWinsR++; } });
+            TS.matchResults.forEach(r => { 
+                if(r) { 
+                    let isL = r.A.includes('(OP)') || r.B.includes('(OP)');
+                    let isR = r.C.includes('(OP)') || r.D.includes('(OP)');
+                    if (isL && !isR) { calcWinsR++; }
+                    else if (isR && !isL) { calcWinsL++; }
+                    else { r.gL > r.gR ? calcWinsL++ : calcWinsR++; }
+                } 
+            });
             TS.winsL = calcWinsL; TS.winsR = calcWinsR;
             document.getElementById('final-team-score').textContent = `${calcWinsL} - ${calcWinsR}`; 
             document.getElementById('final-winner-text').textContent = calcWinsL > calcWinsR ? "岩手選抜 WIN!" : (calcWinsR > calcWinsL ? "相手校 WIN!" : "引き分け"); 
@@ -609,7 +672,15 @@
                 });
                 
                 let calcWinsL = 0, calcWinsR = 0;
-                mergedResults.forEach(r => { if(r) { r.gL > r.gR ? calcWinsL++ : calcWinsR++; } });
+                mergedResults.forEach(r => { 
+                    if(r) { 
+                        let isL = r.A.includes('(OP)') || r.B.includes('(OP)');
+                        let isR = r.C.includes('(OP)') || r.D.includes('(OP)');
+                        if (isL && !isR) { calcWinsR++; }
+                        else if (isR && !isL) { calcWinsL++; }
+                        else { r.gL > r.gR ? calcWinsL++ : calcWinsR++; }
+                    } 
+                });
                 
                 step(4);
                 document.getElementById('final-team-score').textContent = `${calcWinsL} - ${calcWinsR}`; 
