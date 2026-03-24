@@ -3,272 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>岩手選抜 全コート状況</title>
+    <title>【岩手選抜】団体戦 速報ダッシュボード</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Roboto+Mono:wght@700;900&display=swap" rel="stylesheet">
     <style>
-        /* ── COLORS & THEME ── */
-        :root {
-            --bg: #f1f5f9; 
-            --surface: #ffffff; 
-            --border: #94a3b8;
-            --text: #0f172a; 
-            --text-dim: #475569;
-            --blue: #0284c7; 
-            --red: #ea580c;  
-            --gold: #d97706; 
-        }
-        
+        :root { --team-bg: #1b5e20; --team-gold: #fbc02d; --bg: #e8f5e9; --surface: #ffffff; --border: #a5d6a7; --text: #1f2937; --text-dim: #6b7280; --blue: #1976d2; --red: #d32f2f; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); padding: 10px; }
-
-        .dash-header { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 2px solid var(--border); margin-bottom: 15px; background: var(--surface); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .dash-title { font-size: 1.1rem; font-weight: 900; color: var(--text); display: flex; align-items: center; gap: 8px; }
-        .live-badge { background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 4px; font-family: 'Orbitron', sans-serif; font-size: 0.7rem; font-weight: bold; border: 1px solid #fca5a5; }
-
-        .section-title { font-size: 1rem; font-weight: bold; color: var(--text-dim); margin-top: 20px; margin-bottom: 10px; padding-left: 5px; border-left: 4px solid var(--border); }
-
-        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 15px; }
-
-        .m-card { 
-            background: var(--surface); border: 1px solid var(--border); border-radius: 8px; 
-            display: flex; flex-direction: column; cursor: pointer; text-decoration: none; color: inherit;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
-        .m-card:active { transform: scale(0.98); }
+        body { font-family: 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--text); padding: 15px; }
         
-        .mc-top { background: #f8fafc; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0; border-bottom: 1px solid var(--border); }
-        .mc-court { font-size: 0.9rem; font-weight: 900; color: var(--gold); }
-        .mc-stage { font-size: 0.75rem; color: var(--text-dim); font-weight: bold; }
-
-        .mc-main { display: flex; align-items: center; padding: 12px 10px; gap: 10px; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--team-bg); color: #fff; border-radius: 8px; margin-bottom: 20px; border-bottom: 4px solid var(--team-gold); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; }
         
-        .team-box { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .team-name { font-size: 0.95rem; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
-        .player-names { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold; }
-
-        .score-box { display: flex; align-items: center; background: #f1f5f9; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); }
-        .g-num { font-family: 'Orbitron', sans-serif; font-size: 1.6rem; font-weight: 900; width: 25px; text-align: center; }
-        .p-num { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; font-weight: bold; color: #ffffff; background: var(--text); padding: 2px 4px; border-radius: 4px; margin-left: 5px; min-width: 20px; text-align: center;}
-        .sep { color: var(--border); font-weight: bold; padding: 0 4px; }
-
-        .c-L { color: var(--blue); }
-        .c-R { color: var(--red); }
+        .m-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 10px rgba(0,0,0,0.08); overflow: hidden; }
+        .mc-top { background: var(--team-bg); color: var(--team-gold); padding: 8px 12px; display: flex; justify-content: space-between; font-weight: bold; font-size: 0.85rem; }
         
-        /* 勝敗が分かりやすいように負け側をグレーダウンさせるクラス */
-        .lose-text { color: #94a3b8 !important; font-weight: normal !important; }
+        .team-battle-area { padding: 15px; text-align: center; border-bottom: 2px dashed var(--border); background: #ffffff; }
+        .team-status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 900; margin-bottom: 10px; }
+        .team-status.running { background: #e3f2fd; color: #1976d2; }
+        .team-status.winner { background: #fff8e1; color: #f57f17; border: 2px solid #fbc02d; font-size: 1.15rem; }
+        .team-status.draw { background: #f5f5f5; color: #616161; border: 2px solid #9e9e9e; font-size: 1.1rem; }
+        
+        .tba-names { font-size: 1.3rem; font-weight: 900; display: flex; justify-content: space-around; margin-bottom: 5px; align-items: center; }
+        .tba-wins { font-family: 'Roboto Mono', monospace; font-size: 3.5rem; font-weight: 900; color: var(--blue); line-height: 1; }
+        
+        .match-list { display: flex; flex-direction: column; }
+        .match-row { padding: 12px 10px; border-bottom: 1px solid #f1f8e9; text-decoration: none; color: inherit; display: block; }
+        
+        .match-row.active { background: #e8f5e9; border-left: 5px solid var(--team-gold); transition: 0.2s; }
+        .match-row.active:hover { background: #c8e6c9; }
+        .match-row.completed { background: #f3f4f6; border-left: 5px solid #9ca3af; }
+        .match-row.aborted { background: #f9f9f9; border-left: 5px solid #e0e0e0; opacity: 0.6; }
+        .match-row.waiting { background: #ffffff; border-left: 5px solid transparent; }
+        
+        .match-title { font-size: 0.75rem; font-weight: bold; color: var(--text-dim); text-align: center; margin-bottom: 8px; }
+        .badge-live { color: var(--team-bg); font-weight: 900; background: #c8e6c9; border-radius: 4px; padding: 4px 10px; display: inline-block; }
+        .badge-finished { color: #fff; font-weight: 900; background: #9ca3af; border-radius: 4px; padding: 4px 10px; display: inline-block; }
+        .badge-waiting { color: #999; font-weight: bold; background: #f1f1f1; border-radius: 4px; padding: 2px 8px; display: inline-block;}
+        .badge-aborted { color: #777; font-weight: bold; background: #e0e0e0; border-radius: 4px; padding: 2px 8px; display: inline-block;}
 
-        .m-card.finished { 
-            background: #f8fafc; border-color: #e2e8f0; box-shadow: none; 
-        }
-        .m-card.finished .mc-top { background: #f1f5f9; }
-        .m-card.finished .p-num { background: #cbd5e1 !important; color: #f1f5f9 !important; }
-        .m-card.finished .mc-court { color: var(--text-dim) !important; }
-
-        @media (max-width: 600px) {
-            .grid-container { grid-template-columns: 1fr; gap: 10px; }
-            .dash-header { padding: 10px; }
-            .team-name { font-size: 0.85rem; }
-            .g-num { font-size: 1.3rem; }
-            .p-num { font-size: 0.8rem; }
-        }
-        @media (min-width: 900px) {
-            .grid-container { grid-template-columns: repeat(3, 1fr); }
-        }
-
-        .footer-info { margin-top: 20px; text-align: center; font-size: 0.75rem; color: var(--text-dim); font-weight: bold; }
+        .match-content { display: flex; justify-content: space-between; align-items: center; }
+        .m-players { font-size: 0.85rem; line-height: 1.3; }
+        .m-players.left { text-align: left; width: 26%; }
+        .m-players.right { text-align: right; width: 26%; }
+        
+        .m-score-area { width: 48%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .g-num { font-family: 'Roboto Mono', monospace; font-size: 1.6rem; font-weight: 900; width: 20px; text-align: center; }
+        .p-box { display: flex; justify-content: center; align-items: center; background: #333; color: #fff; padding: 4px 8px; border-radius: 6px; font-family: 'Roboto Mono', monospace; font-size: 1rem; gap: 4px; width: 65px; height: 30px; }
     </style>
 </head>
 <body>
-
     <div class="dash-header">
-        <div class="dash-title">
-            <span class="live-badge">LIVE</span>
-            岩手選抜 速報ダッシュボード
-        </div>
-        <div id="d-time" style="font-size: 0.75rem; color: var(--text-dim); font-weight: bold;">--:--:-- 更新</div>
+        <div style="font-weight:900; font-size:1.1rem;">【岩手選抜】速報ダッシュボード</div>
+        <div id="d-time" style="font-size: 0.8rem; font-weight:bold;">更新中...</div>
     </div>
-
-    <div id="live-section" style="display: none;">
-        <div class="section-title">🎾 進行中の試合</div>
-        <div class="grid-container" id="live-wrap"></div>
-    </div>
-
-    <div id="finished-section" style="display: none;">
-        <div class="section-title" style="margin-top: 30px;">✅ 終了した試合</div>
-        <div class="grid-container" id="finished-wrap"></div>
-    </div>
-
-    <div id="empty-msg" style="text-align: center; padding: 40px; color: var(--text-dim); font-weight: bold;">
-        接続中...
-    </div>
-
-    <div class="footer-info">
-        5秒ごとに自動更新中<br>
-        各試合をタップすると詳細画面が開きます
+    
+    <div class="grid-container" id="grid-wrap">
+        <div style="grid-column: 1/-1; text-align: center; padding: 50px; font-weight: bold; color: var(--team-bg);">データを読み込んでいます...</div>
     </div>
 
     <script>
-        const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbzmYnneVj2-xdV-ThBIpdiVlYoYzGAw1wQh06Woj0pDys_0LISb5prtT2ppeE3n6jc_Xg/exec";
+        const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbwGXEOCDFHzN4Pco3v87vf4CJ0x_bVwLe2G3Bhpn-Dyp5AZhiwtlA2abUknT0LtHVNc/exec";
+        const COURT_NAME_MAP = { sun_1: 'サン1', sun_2: 'サン2', sun_3: 'サン3', sun_4: 'サン4', ken_1: '県体1', ken_2: '県体2' };
 
-        window.onload = () => {
-            fetchDashboard();
-            setInterval(fetchDashboard, 5000); 
-        };
+        window.onload = () => { fetchDashboard(); setInterval(fetchDashboard, 5000); };
 
         async function fetchDashboard() {
             try {
                 const response = await fetch(`${GAS_URL_LIVE}?all=true`);
                 const matches = await response.json();
                 renderDashboard(matches);
-                const now = new Date();
-                document.getElementById('d-time').textContent = now.toLocaleTimeString() + ' 更新';
-            } catch (error) {
-                console.error("Fetch Error:", error);
-            }
+                document.getElementById('d-time').textContent = new Date().toLocaleTimeString() + ' 自動更新中';
+            } catch (error) { console.error("Fetch Error:", error); }
         }
 
-        function getCourtShortName(id) {
-            if(!id) return '';
-            return '伊勢市営' + id.split('_')[1] + 'コート';
-        }
-
-        function createMatchCardHTML(S) {
-            const courtName = getCourtShortName(S.meta.court);
-            const d = getDisp(S.pL, S.pR, S.isFinal);
-            const inf = getServ(S);
-            const isSingles = (S.meta.matchType === 'シングルス');
-            
-            const playersL = isSingles ? S.names.A : `${S.names.A}・${S.names.B}`;
-            const playersR = isSingles ? S.names.C : `${S.names.C}・${S.names.D}`;
-            
-            const isFin = S.isFinished;
-            const cardClass = isFin ? 'm-card finished' : 'm-card';
-            
-            const sL = (!isFin && (inf.s === 'A' || inf.s === 'B')) ? '🎾' : '';
-            const sR = (!isFin && (inf.s === 'C' || inf.s === 'D')) ? '🎾' : '';
-            
-            const statusBadge = isFin
-                ? `<span style="background:#94a3b8; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.65rem; margin-right:5px; vertical-align:middle;">終了</span>`
-                : `<span style="color:#dc2626; font-size:0.65rem; font-weight:900; margin-right:5px; vertical-align:middle;">●LIVE</span>`;
-
-            // ★勝者の判定と色付けの調整
-            let winner = '';
-            if (isFin) {
-                if (S.gL > S.gR) winner = 'L';
-                else if (S.gR > S.gL) winner = 'R';
-            }
-            
-            const classL = isFin ? (winner === 'L' ? 'c-L' : 'lose-text') : 'c-L';
-            const classR = isFin ? (winner === 'R' ? 'c-R' : 'lose-text') : 'c-R';
-            const crownL = winner === 'L' ? '<span style="font-size:1.1rem; margin-right:4px;">👑</span>' : '';
-            const crownR = winner === 'R' ? '<span style="font-size:1.1rem; margin-left:4px;">👑</span>' : '';
-
-            const matchIdQuery = S.matchId ? `&matchId=${S.matchId}` : '';
-            const detailUrl = `live.html?court=${S.meta.court}${matchIdQuery}`;
-
-            return `
-            <a href="${detailUrl}" class="${cardClass}">
-                <div class="mc-top">
-                    <span class="mc-court">${statusBadge}${courtName}</span>
-                    <span class="mc-stage">${S.meta.stage || ''} (${S.meta.matchType})</span>
-                </div>
-                <div class="mc-main">
-                    <div class="team-box">
-                        <div class="team-name ${classL}">${crownL}${S.teams.L}</div>
-                        <div class="player-names">${sL}${playersL}</div>
-                    </div>
-                    
-                    <div class="score-box">
-                        <div class="g-num ${classL}">${S.gL}</div>
-                        <div class="p-num">${d.l}</div>
-                        <div class="sep">-</div>
-                        <div class="p-num">${d.r}</div>
-                        <div class="g-num ${classR}">${S.gR}</div>
-                    </div>
-
-                    <div class="team-box" style="text-align: right;">
-                        <div class="team-name ${classR}">${S.teams.R}${crownR}</div>
-                        <div class="player-names">${playersR}${sR}</div>
-                    </div>
-                </div>
-            </a>
-            `;
-        }
+        function getDisp(l, r, fin) { const border = fin ? 6 : 3; if (l < border || r < border) return { l, r }; if (l === r) return { l: 'D', r: 'D' }; if (l > r) return { l: 'A', r: 'D' }; return { l: 'D', r: 'A' }; }
 
         function renderDashboard(matches) {
-            const liveWrap = document.getElementById('live-wrap');
-            const finishedWrap = document.getElementById('finished-wrap');
-            const liveSection = document.getElementById('live-section');
-            const finishedSection = document.getElementById('finished-section');
-            const emptyMsg = document.getElementById('empty-msg');
-            
-            const now = Date.now();
-            const TIMEOUT_MS = 60 * 60 * 1000; 
+            const wrap = document.getElementById('grid-wrap');
+            if (!matches || matches.length === 0) { 
+                wrap.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:50px;font-weight:bold;color:var(--team-bg);">現在、進行中または終了した試合のデータはありません</div>'; 
+                return; 
+            }
 
-            let validMatches = matches.filter(S => {
-                if (!S.lastUpdate) return false; 
-                if (S.isFinished) return true; 
-                return (now - S.lastUpdate) < TIMEOUT_MS; 
+            const mergedTeams = {};
+            matches.forEach(data => {
+                if(data.type !== 'team_match' || !data.TS) return;
+                const TS = data.TS;
+                
+                const roomKey = TS.roomCode ? `ROOM_${TS.roomCode}` : null;
+                const fallbackKey = `${(TS.meta.tourney||'').trim()}_${TS.gender}_${(TS.teamL||'').trim()}_${(TS.teamR||'').trim()}`;
+                const matchKey = roomKey || fallbackKey;
+                
+                if (!mergedTeams[matchKey]) {
+                    mergedTeams[matchKey] = { TS: JSON.parse(JSON.stringify(TS)), courts: [], activeMatchesData: {} };
+                    if(!mergedTeams[matchKey].TS.matchResults) mergedTeams[matchKey].TS.matchResults = [];
+                    if(!mergedTeams[matchKey].TS.matchOrders) mergedTeams[matchKey].TS.matchOrders = [{A:'',B:'',C:'',D:''},{A:'',B:'',C:'',D:''},{A:'',B:'',C:'',D:''}];
+                }
+                
+                const courtDisp = COURT_NAME_MAP[data.S.meta.court] || data.S.meta.court;
+                if(!mergedTeams[matchKey].courts.includes(courtDisp)) mergedTeams[matchKey].courts.push(courtDisp);
+
+                if (TS.matchResults) {
+                    TS.matchResults.forEach((res, idx) => { if (res) mergedTeams[matchKey].TS.matchResults[idx] = res; });
+                }
+                if (TS.matchOrders) {
+                    TS.matchOrders.forEach((o, idx) => { if (o && o.A && o.A !== '-') mergedTeams[matchKey].TS.matchOrders[idx] = o; });
+                }
+                if (TS.meta && TS.meta.playMode) mergedTeams[matchKey].TS.meta.playMode = TS.meta.playMode;
+
+                if (!data.S.isMatchCompleted) {
+                    mergedTeams[matchKey].activeMatchesData[TS.currentMatchNum] = data.S;
+                }
             });
 
-            if (validMatches.length === 0) {
-                liveSection.style.display = 'none';
-                finishedSection.style.display = 'none';
-                emptyMsg.style.display = 'block';
-                emptyMsg.innerHTML = "現在、表示できる試合データはありません";
-                return;
-            }
+            wrap.innerHTML = Object.values(mergedTeams).map(group => {
+                const TS = group.TS;
+                const courtDisplay = group.courts.join(', ');
+                
+                let wL = 0, wR = 0, finishedCount = 0;
+                for(let i=0; i<3; i++) {
+                    if(TS.matchResults[i]) {
+                        finishedCount++;
+                        TS.matchResults[i].gL > TS.matchResults[i].gR ? wL++ : wR++;
+                    }
+                }
+                TS.winsL = wL; TS.winsR = wR;
 
-            emptyMsg.style.display = 'none';
+                const playMode = TS.meta.playMode || 'all';
+                let isTeamMatchFinished = false;
+                let statusHtml = `<div class="team-status running">団体戦 進行中</div>`;
+                
+                if (playMode === 'first_to_2') {
+                    if (wL >= 2) { isTeamMatchFinished = true; statusHtml = `<div class="team-status winner">${TS.teamL} 勝利！ ※打ち切り</div>`; }
+                    else if (wR >= 2) { isTeamMatchFinished = true; statusHtml = `<div class="team-status winner">${TS.teamR} 勝利！ ※打ち切り</div>`; }
+                } else {
+                    if (finishedCount === 3) {
+                        isTeamMatchFinished = true;
+                        if (wL > wR) statusHtml = `<div class="team-status winner">${TS.teamL} 勝利！</div>`;
+                        else if (wR > wL) statusHtml = `<div class="team-status winner">${TS.teamR} 勝利！</div>`;
+                        else statusHtml = `<div class="team-status draw">引き分け</div>`;
+                    }
+                }
 
-            let liveMatches = validMatches.filter(S => !S.isFinished);
-            let finishedMatches = validMatches.filter(S => S.isFinished);
+                const cardOpacity = isTeamMatchFinished ? '0.9' : '1';
+                
+                let html = `
+                <div class="m-card" style="opacity: ${cardOpacity};">
+                    <div class="mc-top"><span>${courtDisplay}</span><span>${TS.meta.tourney || ''} (${TS.gender})</span></div>
+                    <div class="team-battle-area">
+                        ${statusHtml}
+                        <div class="tba-names"><span style="color:${isTeamMatchFinished ? '#555' : 'var(--blue)'};">${TS.teamL}</span><span style="font-size:0.9rem;color:#888;">VS</span><span style="color:${isTeamMatchFinished ? '#555' : 'var(--red)'};">${TS.teamR}</span></div>
+                        <div class="tba-wins"><span style="color:${isTeamMatchFinished ? '#555' : 'var(--blue)'};">${TS.winsL}</span><span style="font-family:'Roboto Mono', monospace; color:#ccc; margin:0 15px; font-size:2rem;">-</span><span style="color:${isTeamMatchFinished ? '#555' : 'var(--red)'};">${TS.winsR}</span></div>
+                    </div>
+                    <div class="match-list">`;
 
-            liveMatches.sort((a, b) => {
-                const numA = parseInt(a.meta.court.split('_')[1]) || 0;
-                const numB = parseInt(b.meta.court.split('_')[1]) || 0;
-                return numA - numB;
-            });
+                for (let i = 0; i < 3; i++) {
+                    const matchNum = i + 1;
+                    const activeS = group.activeMatchesData[matchNum];
+                    const res = TS.matchResults[i];
+                    
+                    const order = (TS.matchOrders && TS.matchOrders[i]) ? TS.matchOrders[i] : {A:'-', B:'-', C:'-', D:'-'};
+                    let pA = order.A || '-'; let pB = order.B || '';
+                    let pC = order.C || '-'; let pD = order.D || '';
 
-            finishedMatches.sort((a, b) => {
-                return b.lastUpdate - a.lastUpdate;
-            });
+                    let mStatus = "waiting"; 
+                    let mWinner = null;
+                    if (res) {
+                        mStatus = "completed";
+                        mWinner = res.gL > res.gR ? 'L' : (res.gR > res.gL ? 'R' : null);
+                    } else if (isTeamMatchFinished) mStatus = "aborted"; 
+                    else if (activeS && !activeS.isMatchCompleted) mStatus = "active";
 
-            if (liveMatches.length > 0) {
-                liveSection.style.display = 'block';
-                liveWrap.innerHTML = liveMatches.map(S => createMatchCardHTML(S)).join('');
-            } else {
-                liveSection.style.display = 'none';
-            }
+                    let badgeText = "", badgeClass = "", scoreHtml = "";
+                    let colorL = "#999", colorR = "#999";
+                    let weightL = "bold", weightR = "bold";
+                    let wrapTagStart = `<div class="match-row ${mStatus}">`;
+                    let wrapTagEnd = `</div>`;
 
-            if (finishedMatches.length > 0) {
-                finishedSection.style.display = 'block';
-                finishedWrap.innerHTML = finishedMatches.map(S => createMatchCardHTML(S)).join('');
-            } else {
-                finishedSection.style.display = 'none';
-            }
-        }
+                    if (mStatus === "completed") {
+                        badgeText = "試合終了"; badgeClass = "badge-finished";
+                        if (mWinner === 'L') {
+                            colorL = "var(--blue)"; colorR = "#bbb";
+                            weightL = "900"; weightR = "normal";
+                            scoreHtml = `
+                                <div class="g-num" style="color:var(--blue);">${res.gL}</div>
+                                <div class="p-box" style="background:#9ca3af; color:#fff;"><span>-</span></div>
+                                <div class="g-num" style="color:#bbb;">${res.gR}</div>
+                            `;
+                        } else if (mWinner === 'R') {
+                            colorL = "#bbb"; colorR = "var(--red)";
+                            weightL = "normal"; weightR = "900";
+                            scoreHtml = `
+                                <div class="g-num" style="color:#bbb;">${res.gL}</div>
+                                <div class="p-box" style="background:#9ca3af; color:#fff;"><span>-</span></div>
+                                <div class="g-num" style="color:var(--red);">${res.gR}</div>
+                            `;
+                        } else {
+                            colorL = "#555"; colorR = "#555";
+                            scoreHtml = `
+                                <div class="g-num" style="color:#555;">${res.gL}</div>
+                                <div class="p-box" style="background:#9ca3af; color:#fff;"><span>-</span></div>
+                                <div class="g-num" style="color:#555;">${res.gR}</div>
+                            `;
+                        }
+                    } else if (mStatus === "aborted") {
+                        badgeText = "打ち切り"; badgeClass = "badge-aborted";
+                        colorL = "#aaa"; colorR = "#aaa"; weightL = "normal"; weightR = "normal";
+                        scoreHtml = `
+                            <div class="g-num" style="color:#ccc;">-</div>
+                            <div class="p-box" style="background:#e0e0e0; color:#aaa;"><span>-</span></div>
+                            <div class="g-num" style="color:#ccc;">-</div>
+                        `;
+                    } else if (mStatus === "active") {
+                        badgeText = "▶ 試合中 (詳細へ)"; badgeClass = "badge-live";
+                        colorL = "var(--blue)"; colorR = "var(--red)"; weightL = "900"; weightR = "900";
+                        const d = getDisp(activeS.pL, activeS.pR, activeS.isFinal);
+                        scoreHtml = `
+                            <div class="g-num" style="color:var(--blue);">${activeS.gL}</div>
+                            <div class="p-box" style="background:#333; color:#fff;"><span>${d.l}</span><span style="margin:0 3px;">-</span><span>${d.r}</span></div>
+                            <div class="g-num" style="color:var(--red);">${activeS.gR}</div>
+                        `;
+                        wrapTagStart = `<a href="live.html?court=${activeS.meta.court}" class="match-row active" style="display:block; text-decoration:none;">`;
+                        wrapTagEnd = `</a>`;
+                    } else { 
+                        badgeText = "試合前"; badgeClass = "badge-waiting";
+                        colorL = "#999"; colorR = "#999"; weightL = "bold"; weightR = "bold";
+                        scoreHtml = `
+                            <div class="g-num" style="color:#ccc;">0</div>
+                            <div class="p-box" style="background:#e0e0e0; color:#aaa;"><span>-</span></div>
+                            <div class="g-num" style="color:#ccc;">0</div>
+                        `;
+                    }
 
-        function getDisp(l, r, fin) { 
-            const border = fin ? 6 : 3; 
-            if (l < border || r < border) return { l, r }; 
-            if (l === r) return { l: 'D', r: 'D' }; 
-            if (l > r) return { l: 'A', r: 'D' }; 
-            return { l: 'D', r: 'A' }; 
-        }
-
-        function getServ(S) {
-            if (!S.sOrder || S.sOrder.length === 0) return { s: 'A' }; 
-            if (S.meta.matchType === 'シングルス') {
-                const actTeam = (Math.floor(S.totalP / (S.isFinal ? 2 : 999)) % 2 === 0) ? S.curServTeam : 1 - S.curServTeam;
-                return { s: actTeam === 0 ? 'A' : 'C' };
-            } else {
-                if (!S.isFinal) return { s: S.sOrder[Math.floor(S.totalP / 2) % 2] };
-                const blk = Math.floor(S.totalP / 2) % 4;
-                return { s: (blk === 0 || blk === 2) ? S.sOrder[blk/2] : S.rOrder[0] };
-            }
+                    html += `
+                    ${wrapTagStart}
+                        <div class="match-title"><span class="${badgeClass}">第${matchNum}マッチ ${badgeText}</span></div>
+                        <div class="match-content">
+                            <div class="m-players left" style="color:${colorL}; font-weight:${weightL};">${pA}<br><span style="font-size:0.75rem;">${pB}</span></div>
+                            <div class="m-score-area">
+                                ${scoreHtml}
+                            </div>
+                            <div class="m-players right" style="color:${colorR}; font-weight:${weightR};">${pC}<br><span style="font-size:0.75rem;">${pD}</span></div>
+                        </div>
+                    ${wrapTagEnd}`;
+                }
+                html += `</div></div>`;
+                return html;
+            }).join('');
         }
     </script>
 </body>
