@@ -449,20 +449,24 @@
                         TS.currentMatchNum = 1;
                         applyMatchOrderToS(1);
                         step(1);
+                        // 成功時は画面が変わるのでボタンは無効のままでOK
                     } else { 
                         if (res.message.includes("使用中")) {
                             if(confirm("選択したコートは使用中（または前回のテストデータが残っている状態）です。\n強制的に解除してこのコートを使用しますか？")) {
-                                btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false;
-                                handleSetupComplete(true);
-                                return;
+                                handleSetupComplete(true); // 強制解除モードで再実行
+                                return; 
                             }
                         } else {
                             alert("エラー: " + res.message); 
                         }
+                        // キャンセルや別エラー時はボタンを復旧
+                        btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false;
                     }
-                } catch(e) { alert("通信エラーが発生しました。"); }
-                
-                if(!force) { btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false; }
+                } catch(e) { 
+                    alert("通信エラーが発生しました。"); 
+                    // エラー時も確実にボタンを復旧
+                    btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false;
+                }
                 
             } else if (appMode === 'host') {
                 TS.meta.court = ''; // 初期化時の不要なコート情報をクリア
@@ -474,9 +478,14 @@
                         roomCode = res.roomCode; TS.roomCode = roomCode;
                         document.getElementById('display-room-code').textContent = roomCode;
                         step('match-select');
-                    } else { alert("エラー: " + res.message); }
-                } catch(e) { alert("通信エラーが発生しました。"); }
-                btn.textContent = "部屋を作成して進む ➔"; btn.disabled = false;
+                    } else { 
+                        alert("エラー: " + res.message); 
+                        btn.textContent = "部屋を作成して進む ➔"; btn.disabled = false;
+                    }
+                } catch(e) { 
+                    alert("通信エラーが発生しました。"); 
+                    btn.textContent = "部屋を作成して進む ➔"; btn.disabled = false;
+                }
             }
         }
 
@@ -487,13 +496,14 @@
             btn.textContent = "取得中..."; btn.disabled = true;
             try {
                 const res = await fetch(GAS_URL_LIVE + `?roomCode=${codeInput}`).then(r=>r.json());
-                if(res.error) { alert("部屋が見つかりません。"); } 
-                else {
+                if(res.error) { 
+                    alert("部屋が見つかりません。"); 
+                    btn.textContent = "部屋に入る ➔"; btn.disabled = false;
+                } else {
                     TS = res.hostData; roomCode = codeInput; TS.roomCode = roomCode;
                     S.maxG = TS.meta.maxG || 7; S.winG = TS.meta.winG || 4;
                     document.getElementById('display-room-code').textContent = roomCode;
                     
-                    // すでに担当されているマッチを避けて自動で空きマッチを選択する
                     if (res.locks && res.locks.matches) {
                         let availableMatches = [1, 2, 3].filter(m => !res.locks.matches.includes(m));
                         if(availableMatches.length > 0) {
@@ -502,11 +512,12 @@
                             selMatchToLock(1);
                         }
                     }
-
                     step('match-select');
                 }
-            } catch(e) { alert("通信エラーが発生しました。"); }
-            btn.textContent = "部屋に入る ➔"; btn.disabled = false;
+            } catch(e) { 
+                alert("通信エラーが発生しました。"); 
+                btn.textContent = "部屋に入る ➔"; btn.disabled = false;
+            }
         }
 
         async function lockAndStartMatch(force = false) {
@@ -528,19 +539,22 @@
                 } else { 
                     if (res.message.includes("使用中")) {
                         if(confirm("選択したコートは使用中（または前回のテストデータが残っている状態）です。\n強制的に解除してこのコートを使用しますか？")) {
-                            btn.textContent = "このマッチを担当する ➔"; btn.disabled = false;
-                            lockAndStartMatch(true); // 強制解除フラグを立てて再リクエスト
-                            return;
+                            lockAndStartMatch(true); 
+                            return; 
                         }
                     } else if (res.message.includes("他の人が担当") || res.message.includes("エントリーされています")) {
                         alert(res.message);
                     } else {
                         alert("エラー: " + res.message); 
                     }
+                    // キャンセルや他のエラー時はボタンを確実に復旧
+                    btn.textContent = "このマッチを担当する ➔"; btn.disabled = false;
                 }
-            } catch(e) { alert("通信エラーが発生しました。"); }
-            
-            if(!force) { btn.textContent = "このマッチを担当する ➔"; btn.disabled = false; }
+            } catch(e) { 
+                alert("通信エラーが発生しました。"); 
+                // エラー時も確実にボタンを復旧
+                btn.textContent = "このマッチを担当する ➔"; btn.disabled = false;
+            }
         }
 
         function applyMatchOrderToS(num) {
@@ -703,25 +717,41 @@
             if(failedData.length > 0) { alert(`${failedData.length}件の送信に失敗しました。`); btn.disabled = false; }
         }
 
+        // --- 試合打ち切り・データ完全消去処理 ---
         async function abortMatch() {
-            if (!confirm('【警告】本当にこのマッチを「打ち切り」として終了しますか？\n（ダッシュボード等には「打ち切り」と表示され、コートのロックは解除されます）')) return;
+            if (!confirm('【警告】本当にこのマッチを「打ち切り」として終了しますか？\n（現在ロックしているコートは解放されます）')) return;
             
+            const action = prompt("【打ち切り後の処理を選択してください】\n\n1 : このマッチのみ打ち切り（他のマッチは継続）\n2 : 団体戦全体を「試合終了」にする（練習試合など）\n3 : ダッシュボードから完全に「消去」する（誤入力やテスト等）\n\n半角数字（1〜3）を入力してください", "1");
+            
+            // 1, 2, 3 以外の入力やキャンセルの場合は処理を中断
+            if (action !== "1" && action !== "2" && action !== "3") return;
+
+            const abortAll = (action === "2");
+            const deleteAll = (action === "3"); // 完全消去フラグ
+
             S.isFinished = true;
             S.isAborted = true;
             S.isMatchCompleted = true;
             
             TS.matchResults[TS.currentMatchNum - 1] = { A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR, isAborted: true };
+            if(abortAll) TS.isTeamMatchFinished = true;
             
             const roomKey = TS.roomCode ? `ROOM_${TS.roomCode}` : `SINGLE_${TS.teamL}_${TS.teamR}`;
             const recordKey = `record_${roomKey}_M${TS.currentMatchNum}`;
             
             if(navigator.onLine) {
                 try {
-                    await fetch(GAS_URL_LIVE, { method: 'POST', body: JSON.stringify({ type: 'abort_match', court: TS.meta.court, roomCode: TS.roomCode, matchNum: TS.currentMatchNum, recordKey: recordKey, TS: TS, S: S }) });
+                    await fetch(GAS_URL_LIVE, { method: 'POST', body: JSON.stringify({ type: 'abort_match', court: TS.meta.court, roomCode: TS.roomCode, matchNum: TS.currentMatchNum, recordKey: recordKey, TS: TS, S: S, abortAll: abortAll, deleteAll: deleteAll }) });
                 } catch(e) { console.error(e); }
             }
             
-            alert('試合を打ち切りました。最初の画面に戻ります。');
+            if (deleteAll) {
+                alert('ダッシュボードからこの団体戦のデータを完全に消去しました。\n最初の画面に戻ります。');
+            } else if (abortAll) {
+                alert('団体戦全体を試合終了扱いにしました。\n最初の画面に戻ります。');
+            } else {
+                alert('このマッチを打ち切りました。\n最初の画面に戻ります。');
+            }
             location.reload();
         }
 
