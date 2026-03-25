@@ -773,9 +773,45 @@
             document.getElementById('final-match-list').innerHTML = html;
         }
 
-        function showResult() { document.getElementById('res-match-num').textContent = TS.currentMatchNum; document.getElementById('res-winner').textContent = S.gL > S.gR ? TS.teamL : TS.teamR; document.getElementById('res-score').textContent = `${S.gL} - ${S.gR}`; const tbl = document.getElementById('res-score-tbl'); let h = `<tr><th></th>${S.log.map((g, i) => `<th>G${i + 1}</th>`).join('')}<th>計</th></tr>`; h += `<tr><td style="color:var(--blue)">岩手選抜</td>${S.log.map(g => `<td>${g.L}</td>`).join('')}<td>${S.gL}</td></tr>`; h += `<tr><td style="color:var(--red)">相手</td>${S.log.map(g => `<td>${g.R}</td>`).join('')}<td>${S.gR}</td></tr>`; tbl.innerHTML = h; const stTbl = document.getElementById('res-stats-tbl'); stTbl.innerHTML = ''; ['A', 'B', 'C', 'D'].forEach(p => { const s = S.stats[p]; const rate = s.st > 0 ? Math.round(s.fi / s.st * 100) + '%' : '-'; stTbl.innerHTML += `<tr><td>${S.names[p]}</td><td>${s.p}</td><td>${s.m}</td><td>${rate}</td></tr>`; }); document.getElementById('btn-next-match').innerHTML = TS.currentMatchNum >= 3 ? "結果へ" : "次へ"; step(3); document.getElementById('modal').classList.remove('hidden'); }
+        function showResult() { 
+            document.getElementById('res-match-num').textContent = TS.currentMatchNum; 
+            document.getElementById('res-winner').textContent = S.gL > S.gR ? TS.teamL : TS.teamR; 
+            document.getElementById('res-score').textContent = `${S.gL} - ${S.gR}`; 
+            const tbl = document.getElementById('res-score-tbl'); 
+            let h = `<tr><th></th>${S.log.map((g, i) => `<th>G${i + 1}</th>`).join('')}<th>計</th></tr>`; 
+            h += `<tr><td style="color:var(--blue)">岩手選抜</td>${S.log.map(g => `<td>${g.L}</td>`).join('')}<td>${S.gL}</td></tr>`; 
+            h += `<tr><td style="color:var(--red)">相手</td>${S.log.map(g => `<td>${g.R}</td>`).join('')}<td>${S.gR}</td></tr>`; 
+            tbl.innerHTML = h; 
+            const stTbl = document.getElementById('res-stats-tbl'); 
+            stTbl.innerHTML = ''; 
+            ['A', 'B', 'C', 'D'].forEach(p => { 
+                const s = S.stats[p]; 
+                const rate = s.st > 0 ? Math.round(s.fi / s.st * 100) + '%' : '-'; 
+                stTbl.innerHTML += `<tr><td>${S.names[p]}</td><td>${s.p}</td><td>${s.m}</td><td>${rate}</td></tr>`; 
+            }); 
+
+            // 【追加】2点先取の勝敗を事前に先読み計算し、ボタンの文字を正確に変える
+            let tempWinsL = TS.winsL; let tempWinsR = TS.winsR;
+            let isL_OP = S.names.A.includes('(OP)') || S.names.B.includes('(OP)');
+            let isR_OP = S.names.C.includes('(OP)') || S.names.D.includes('(OP)');
+            if (isL_OP && !isR_OP) { tempWinsR++; } 
+            else if (isR_OP && !isL_OP) { tempWinsL++; } 
+            else { S.gL > S.gR ? tempWinsL++ : tempWinsR++; }
+            
+            const teamWon = TS.meta.playMode === 'first_to_2' && (tempWinsL >= 2 || tempWinsR >= 2);
+            const btnNext = document.getElementById('btn-next-match');
+            btnNext.innerHTML = (TS.currentMatchNum >= 3 || teamWon) ? "結果へ ➔" : "次へ進む ➔"; 
+            btnNext.disabled = false; // ボタンを再度有効化しておく
+
+            step(3); 
+            document.getElementById('modal').classList.remove('hidden'); 
+        }
         
         function processTeamResult() { 
+            // 【追加】連打バグ防止（1回タップしたら即座にボタンを殺して二重カウントを防ぐ）
+            const btn = document.getElementById('btn-next-match');
+            if(btn) btn.disabled = true;
+
             let isL_OP = S.names.A.includes('(OP)') || S.names.B.includes('(OP)');
             let isR_OP = S.names.C.includes('(OP)') || S.names.D.includes('(OP)');
 
@@ -810,6 +846,14 @@
         function backToMatchSelect() {
             const mG = TS.meta.maxG || 7, wG = TS.meta.winG || 4; S = getInitialMatchState(); S.maxG = mG; S.winG = wG; historyStack = [];
             resetSendBtn();
+            
+            // 【追加】ロックボタンをリセットして再び押せる状態に戻す
+            const lockBtn = document.getElementById('btn-lock-match');
+            if (lockBtn) {
+                lockBtn.textContent = "このマッチを担当する ➔";
+                lockBtn.disabled = false;
+            }
+
             step('match-select');
         }
 
