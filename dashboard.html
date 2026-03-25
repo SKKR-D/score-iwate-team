@@ -53,7 +53,10 @@
 </head>
 <body>
     <div class="dash-header">
-        <div style="font-weight:900; font-size:1.1rem;">【岩手選抜】速報ダッシュボード</div>
+        <div style="display: flex; align-items: baseline; gap: 12px;">
+            <div style="font-weight:900; font-size:1.1rem;">【岩手選抜】速報ダッシュボード</div>
+            <div id="d-date" style="font-size: 0.9rem; font-weight: bold; opacity: 0.9;"></div>
+        </div>
         <div id="d-time" style="font-size: 0.8rem; font-weight:bold;">更新中...</div>
     </div>
     
@@ -65,7 +68,16 @@
         const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbwGXEOCDFHzN4Pco3v87vf4CJ0x_bVwLe2G3Bhpn-Dyp5AZhiwtlA2abUknT0LtHVNc/exec";
         const COURT_NAME_MAP = { sun_1: 'サン1', sun_2: 'サン2', sun_3: 'サン3', sun_4: 'サン4', ken_1: '県体1', ken_2: '県体2' };
 
-        window.onload = () => { fetchDashboard(); setInterval(fetchDashboard, 5000); };
+        window.onload = () => { 
+            // 日付と曜日の自動取得・表示
+            const now = new Date();
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            document.getElementById('d-date').textContent = `${now.getMonth() + 1}月${now.getDate()}日（${days[now.getDay()]}）`;
+
+            // データの定期取得スタート
+            fetchDashboard(); 
+            setInterval(fetchDashboard, 5000); 
+        };
 
         async function fetchDashboard() {
             try {
