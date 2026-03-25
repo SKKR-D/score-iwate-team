@@ -411,7 +411,7 @@
         
         function selMatchToLock(n) { document.getElementById('sel-match-num').value = n; for(let i=1; i<=3; i++) { document.getElementById(`ms-btn-${i}`).classList.remove('sel-gold'); } document.getElementById(`ms-btn-${n}`).classList.add('sel-gold'); }
 
-        async function handleSetupComplete() {
+        async function handleSetupComplete(force = false) {
             TS.teamR = document.getElementById('m-teamR').value || "相手チーム";
             TS.meta.tourney = document.getElementById('m-tourney').value;
             TS.meta.stage = document.getElementById('m-stage').value;
@@ -444,17 +444,28 @@
                 btn.textContent = "確認中..."; btn.disabled = true;
                 
                 try {
-                    const res = await fetch(GAS_URL_LIVE, { method:'POST', body: JSON.stringify({ type: 'lock_single', court: TS.meta.court }) }).then(r=>r.json());
+                    const res = await fetch(GAS_URL_LIVE, { method:'POST', body: JSON.stringify({ type: 'lock_single', court: TS.meta.court, force: force }) }).then(r=>r.json());
                     if(res.status === 'success') {
                         TS.currentMatchNum = 1;
                         applyMatchOrderToS(1);
                         step(1);
-                    } else { alert("エラー: " + res.message); }
+                    } else { 
+                        if (res.message.includes("使用中")) {
+                            if(confirm("選択したコートは使用中（または前回のテストデータが残っている状態）です。\n強制的に解除してこのコートを使用しますか？")) {
+                                btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false;
+                                handleSetupComplete(true);
+                                return;
+                            }
+                        } else {
+                            alert("エラー: " + res.message); 
+                        }
+                    }
                 } catch(e) { alert("通信エラーが発生しました。"); }
                 
-                btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false;
+                if(!force) { btn.textContent = "第1マッチ詳細へ進む ➔"; btn.disabled = false; }
                 
             } else if (appMode === 'host') {
+                TS.meta.court = ''; // 初期化時の不要なコート情報をクリア
                 const btn = document.getElementById('btn-goto-step1');
                 btn.textContent = "部屋作成中..."; btn.disabled = true;
                 try {
@@ -481,13 +492,24 @@
                     TS = res.hostData; roomCode = codeInput; TS.roomCode = roomCode;
                     S.maxG = TS.meta.maxG || 7; S.winG = TS.meta.winG || 4;
                     document.getElementById('display-room-code').textContent = roomCode;
+                    
+                    // すでに担当されているマッチを避けて自動で空きマッチを選択する
+                    if (res.locks && res.locks.matches) {
+                        let availableMatches = [1, 2, 3].filter(m => !res.locks.matches.includes(m));
+                        if(availableMatches.length > 0) {
+                            selMatchToLock(availableMatches[0]);
+                        } else {
+                            selMatchToLock(1);
+                        }
+                    }
+
                     step('match-select');
                 }
             } catch(e) { alert("通信エラーが発生しました。"); }
             btn.textContent = "部屋に入る ➔"; btn.disabled = false;
         }
 
-        async function lockAndStartMatch() {
+        async function lockAndStartMatch(force = false) {
             const matchNum = parseInt(document.getElementById('sel-match-num').value);
             const court = document.getElementById('sel-court-multi').value;
             const scorer = document.getElementById('sel-scorer-multi').value;
@@ -498,14 +520,27 @@
             btn.textContent = "ロック中..."; btn.disabled = true;
 
             try {
-                const res = await fetch(GAS_URL_LIVE, { method:'POST', body: JSON.stringify({ type: 'lock_match', roomCode: roomCode, matchNum: matchNum, court: court, players: players }) }).then(r=>r.json());
+                const res = await fetch(GAS_URL_LIVE, { method:'POST', body: JSON.stringify({ type: 'lock_match', roomCode: roomCode, matchNum: matchNum, court: court, players: players, force: force }) }).then(r=>r.json());
                 if (res.status === 'success') {
                     TS.currentMatchNum = matchNum; TS.meta.court = court; TS.meta.scorer = scorer;
                     applyMatchOrderToS(matchNum);
                     step(1);
-                } else { alert("エラー: " + res.message); }
+                } else { 
+                    if (res.message.includes("使用中")) {
+                        if(confirm("選択したコートは使用中（または前回のテストデータが残っている状態）です。\n強制的に解除してこのコートを使用しますか？")) {
+                            btn.textContent = "このマッチを担当する ➔"; btn.disabled = false;
+                            lockAndStartMatch(true); // 強制解除フラグを立てて再リクエスト
+                            return;
+                        }
+                    } else if (res.message.includes("他の人が担当") || res.message.includes("エントリーされています")) {
+                        alert(res.message);
+                    } else {
+                        alert("エラー: " + res.message); 
+                    }
+                }
             } catch(e) { alert("通信エラーが発生しました。"); }
-            btn.textContent = "このマッチを担当する ➔"; btn.disabled = false;
+            
+            if(!force) { btn.textContent = "このマッチを担当する ➔"; btn.disabled = false; }
         }
 
         function applyMatchOrderToS(num) {
@@ -603,7 +638,6 @@
             }
         }
         
-        // --- 未送信データのオフライン対応 ---
         function saveLocally(matchData) {
             let unsent = JSON.parse(localStorage.getItem('iwate_unsent') || '[]');
             unsent.push(matchData);
@@ -669,7 +703,6 @@
             if(failedData.length > 0) { alert(`${failedData.length}件の送信に失敗しました。`); btn.disabled = false; }
         }
 
-        // --- 試合打ち切り処理 ---
         async function abortMatch() {
             if (!confirm('【警告】本当にこのマッチを「打ち切り」として終了しますか？\n（ダッシュボード等には「打ち切り」と表示され、コートのロックは解除されます）')) return;
             
@@ -692,7 +725,6 @@
             location.reload();
         }
 
-        // ... (以下既存の showResult 等) ...
         function renderFinalList(results) {
             let html = '';
             for(let i=0; i<3; i++) {
