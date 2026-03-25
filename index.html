@@ -18,9 +18,11 @@
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
         body { font-family: 'Noto Sans JP', sans-serif; background: #2e7d32; color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
+        #offline-banner { display:none; width: 100%; background: #d32f2f; color: white; text-align: center; padding: 6px; font-size: 0.8rem; font-weight: bold; z-index: 999; }
+
         .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow-y: auto; padding: 16px; }
         .modal-overlay.hidden { display: none; }
-        .modal-card { background: var(--surface); border: 4px solid var(--team-gold); border-radius: 16px; padding: 20px; width: 100%; max-width: 550px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); }
+        .modal-card { background: var(--surface); border: 4px solid var(--team-gold); border-radius: 16px; padding: 20px; width: 100%; max-width: 550px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5); margin-bottom: 20px;}
         .team-badge { display: inline-block; background: var(--team-gold); color: #000; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 0.8rem; margin-bottom: 10px; }
         
         .input-label { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 4px; display: block; font-weight: bold; margin-top: 15px; border-bottom: 1px solid var(--border); padding-bottom: 2px;}
@@ -56,7 +58,7 @@
         .cp { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
         .cm { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
-        .app { width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); }
+        .app { width: 100%; max-width: 600px; height: 100vh; display: flex; flex-direction: column; background: var(--bg); position: relative; box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); overflow-y:auto;}
         .header { padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
         .game-score-display { font-family: 'Roboto Mono', monospace; font-size: 2.8rem; font-weight: 900; line-height: 1; margin: 0; }
         .gs-left { color: var(--blue); } .gs-right { color: var(--red); }
@@ -103,6 +105,8 @@
     </style>
 </head>
 <body>
+    <div id="offline-banner">⚠️ 現在オフラインです。データは端末に一時保存されます。</div>
+
     <div id="modal" class="modal-overlay">
         <div class="modal-card">
             
@@ -112,6 +116,8 @@
                 <button class="confirm-btn gold" onclick="setMode('single')">👤 1面で進行 (通常)</button>
                 <button class="confirm-btn" style="background:#0288d1;" onclick="setMode('host')">🌐 複数コート展開 (部屋を作る)</button>
                 <button class="confirm-btn" style="background:#00796b;" onclick="setMode('guest')">📲 進行中の部屋に入る (コード入力)</button>
+                
+                <button class="confirm-btn" id="btn-sync" onclick="syncUnsentData()" style="display:none; background:#ff9800; margin-top:30px;">☁ 未送信データを一括送信</button>
             </div>
 
             <div id="step-0" style="display:none;">
@@ -282,7 +288,10 @@
             <div style="flex: 1; display:flex; flex-direction:column; align-items:flex-end; justify-content:center;">
                 <div style="font-size:0.7rem; font-weight:bold; color:var(--text-dim);">団体</div>
                 <div style="font-family:'Roboto Mono', monospace; font-size:1.5rem; font-weight:900;"><span id="team-win-L" style="color:var(--blue);">0</span> <span style="font-size:1rem;color:#ccc;">-</span> <span id="team-win-R" style="color:var(--red);">0</span></div>
-                <button onclick="undo()" style="background:none; border:none; font-size:1.1rem; cursor:pointer; margin-top:2px;">↩️戻</button>
+                <div style="display:flex; gap:8px; margin-top:2px;">
+                    <button onclick="abortMatch()" style="background:none; border:none; font-size:1.1rem; cursor:pointer;" title="試合を打ち切る">🛑</button>
+                    <button onclick="undo()" style="background:none; border:none; font-size:1.1rem; cursor:pointer;" title="1つ戻る">↩️</button>
+                </div>
             </div>
         </div>
 
@@ -318,6 +327,15 @@
 
     <script>
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log("SW Registered")); }
+
+        function checkNetwork() {
+            const banner = document.getElementById('offline-banner');
+            if (navigator.onLine) { banner.style.display = 'none'; } 
+            else { banner.style.display = 'block'; }
+            updateUnsentCount();
+        }
+        window.addEventListener('online', checkNetwork);
+        window.addEventListener('offline', checkNetwork);
 
         const GAS_URL_RECORD = "https://script.google.com/macros/s/AKfycbwpjlnTx4owDg88n9S7GDIp47F1ayVihjtkPM-WvHarKa4UaMELdxuB4GWy4nJDeSxV_g/exec";
         const GAS_URL_LIVE = "https://script.google.com/macros/s/AKfycbwGXEOCDFHzN4Pco3v87vf4CJ0x_bVwLe2G3Bhpn-Dyp5AZhiwtlA2abUknT0LtHVNc/exec";
@@ -356,7 +374,7 @@
 
         function getInitialMatchState() { return { maxG: TS.meta.maxG || 7, winG: TS.meta.winG || 4, gL: 0, gR: 0, pL: 0, pR: 0, totalP: 0, fault: 0, isFinal: false, startTeam: null, curServTeam: null, sOrder: [], rOrder: [], names: { A: '選手A', B: '選手B', C: '選手C', D: '選手D' }, stats: { A: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, B: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, C: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} }, D: { p:0, m:0, fi:0, st:0, pt:{}, mt:{} } }, hist: [], log: [], isMatchCompleted: false }; }
 
-        window.onload = () => { updateRoster(); };
+        window.onload = () => { updateRoster(); checkNetwork(); };
 
         function setMode(mode) {
             appMode = mode;
@@ -415,12 +433,7 @@
                     }
                 }
 
-                TS.matchOrders[i-1] = { 
-                    A: pA, 
-                    B: pB, 
-                    C: pC, 
-                    D: pD 
-                }; 
+                TS.matchOrders[i-1] = { A: pA, B: pB, C: pC, D: pD }; 
             }
 
             if (appMode === 'single') {
@@ -582,19 +595,115 @@
         function update() { const inf = getServ(); document.getElementById('gs-L').textContent = S.gL; document.getElementById('gs-R').textContent = S.gR; const d = getDisp(S.pL, S.pR, S.isFinal); document.getElementById('pt-L').textContent = d.l; document.getElementById('pt-R').textContent = d.r; document.getElementById('game-info').textContent = S.isFinal ? "ファイナル" : `${S.gL + S.gR + 1}G目`; ['A', 'B', 'C', 'D'].forEach(p => { document.getElementById('nm-' + p).value = S.names[p]; document.getElementById('role-' + p).className = `p-role ${p === inf.s ? 'role-s' : (p === inf.r ? 'role-r' : '')}`; document.getElementById('role-' + p).textContent = p === inf.s ? 'S' : (p === inf.r ? 'R' : ''); const row = document.getElementById('row-' + p); row.classList.remove('active-server', 'active-receiver'); if (p === inf.s) row.classList.add('active-server'); if (p === inf.r) row.classList.add('active-receiver'); }); drawChart('flow-chart', S.hist, S.isFinal); }
         function drawChart(id, hist, fin) { const cvs = document.getElementById(id); if (!cvs) return; const ctx = cvs.getContext('2d'); const dpr = window.devicePixelRatio || 1; const rect = cvs.getBoundingClientRect(); cvs.width = rect.width * dpr; cvs.height = rect.height * dpr; ctx.scale(dpr, dpr); const w = rect.width; const h = rect.height; const pts = [0]; let c = 0; hist.forEach(x => { c += (x === 'L' ? 1 : -1); pts.push(c); }); const absMax = Math.max(fin ? 9 : 5, ...pts.map(Math.abs)); const mid = h / 2; const sc = (mid - 6) / absMax; const step = (w - 10) / (pts.length || 1); ctx.beginPath(); ctx.strokeStyle = '#c8e6c9'; ctx.moveTo(0, mid); ctx.lineTo(w, mid); ctx.stroke(); ctx.beginPath(); ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = 2; pts.forEach((y, x) => { x === 0 ? ctx.moveTo(5, mid - y * sc) : ctx.lineTo(5 + x * step, mid - y * sc); }); ctx.stroke(); }
         
-        function sendToLive() { S.meta = { ...TS.meta, gender: TS.gender }; const payload = { type: "team_match", TS: TS, S: S, lastUpdate: Date.now() }; fetch(GAS_URL_LIVE, { method: 'POST', body: JSON.stringify(payload) }).catch(e => console.error(e)); }
-        function sendToRecord() { const btn = document.getElementById('btn-send-record'); btn.innerHTML = "送信中..."; btn.disabled = true; S.meta = { ...TS.meta, gender: TS.gender }; const payload = { type: "team_match", teamData: TS, matchData: S }; fetch(GAS_URL_RECORD, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }).then(() => { btn.innerHTML = "✓ 送信済み"; btn.style.background = "#555"; document.getElementById('btn-next-match').style.display = "block"; }).catch(() => { alert("エラー"); btn.disabled = false; btn.innerHTML = "再送信"; }); }
+        function sendToLive() { 
+            S.meta = { ...TS.meta, gender: TS.gender }; 
+            const payload = { type: "team_match", TS: TS, S: S, lastUpdate: Date.now() }; 
+            if(navigator.onLine) {
+                fetch(GAS_URL_LIVE, { method: 'POST', body: JSON.stringify(payload) }).catch(e => console.error(e)); 
+            }
+        }
         
+        // --- 未送信データのオフライン対応 ---
+        function saveLocally(matchData) {
+            let unsent = JSON.parse(localStorage.getItem('iwate_unsent') || '[]');
+            unsent.push(matchData);
+            localStorage.setItem('iwate_unsent', JSON.stringify(unsent));
+            updateUnsentCount();
+        }
+
+        function updateUnsentCount() {
+            let unsent = JSON.parse(localStorage.getItem('iwate_unsent') || '[]');
+            let btn = document.getElementById('btn-sync');
+            if(btn) {
+                if(unsent.length > 0) {
+                    btn.style.display = 'block';
+                    btn.innerHTML = `☁ 未送信データを一括送信 (${unsent.length}件)`;
+                } else {
+                    btn.style.display = 'none';
+                }
+            }
+        }
+
+        function sendToRecord() { 
+            const btn = document.getElementById('btn-send-record'); 
+            btn.innerHTML = "送信中..."; btn.disabled = true; 
+            S.meta = { ...TS.meta, gender: TS.gender }; 
+            const payload = { type: "team_match", teamData: TS, matchData: S }; 
+            
+            if (!navigator.onLine) {
+                saveLocally(payload);
+                alert("電波がありません！\\nデータはタブレットに安全に保存しました。");
+                btn.innerHTML = "✓ 端末に保存済";
+                document.getElementById('btn-next-match').style.display = "block";
+                return;
+            }
+
+            fetch(GAS_URL_RECORD, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+            .then(() => { 
+                btn.innerHTML = "✓ 送信済み"; btn.style.background = "#555"; 
+                document.getElementById('btn-next-match').style.display = "block"; 
+            }).catch(() => { 
+                saveLocally(payload);
+                alert("送信に失敗しました。端末内に保存します。"); 
+                btn.innerHTML = "✓ 端末に保存済";
+                document.getElementById('btn-next-match').style.display = "block";
+            }); 
+        }
+
+        async function syncUnsentData() {
+            if (!navigator.onLine) { alert("現在オフラインです。"); return; }
+            let unsent = JSON.parse(localStorage.getItem('iwate_unsent') || '[]');
+            if(unsent.length === 0) return;
+            let btn = document.getElementById('btn-sync');
+            btn.innerHTML = "送信中..."; btn.disabled = true;
+            let successCount = 0; let failedData = [];
+            for(let i=0; i<unsent.length; i++) {
+                try {
+                    await fetch(GAS_URL_RECORD, { method: 'POST', mode: 'no-cors', body: JSON.stringify(unsent[i]) });
+                    successCount++;
+                } catch(e) { failedData.push(unsent[i]); }
+            }
+            localStorage.setItem('iwate_unsent', JSON.stringify(failedData));
+            updateUnsentCount();
+            alert(`${successCount}件の試合データを送信しました！`);
+            if(failedData.length > 0) { alert(`${failedData.length}件の送信に失敗しました。`); btn.disabled = false; }
+        }
+
+        // --- 試合打ち切り処理 ---
+        async function abortMatch() {
+            if (!confirm('【警告】本当にこのマッチを「打ち切り」として終了しますか？\n（ダッシュボード等には「打ち切り」と表示され、コートのロックは解除されます）')) return;
+            
+            S.isFinished = true;
+            S.isAborted = true;
+            S.isMatchCompleted = true;
+            
+            TS.matchResults[TS.currentMatchNum - 1] = { A: S.names.A, B: S.names.B, C: S.names.C, D: S.names.D, gL: S.gL, gR: S.gR, isAborted: true };
+            
+            const roomKey = TS.roomCode ? `ROOM_${TS.roomCode}` : `SINGLE_${TS.teamL}_${TS.teamR}`;
+            const recordKey = `record_${roomKey}_M${TS.currentMatchNum}`;
+            
+            if(navigator.onLine) {
+                try {
+                    await fetch(GAS_URL_LIVE, { method: 'POST', body: JSON.stringify({ type: 'abort_match', court: TS.meta.court, roomCode: TS.roomCode, matchNum: TS.currentMatchNum, recordKey: recordKey, TS: TS, S: S }) });
+                } catch(e) { console.error(e); }
+            }
+            
+            alert('試合を打ち切りました。最初の画面に戻ります。');
+            location.reload();
+        }
+
+        // ... (以下既存の showResult 等) ...
         function renderFinalList(results) {
             let html = '';
             for(let i=0; i<3; i++) {
                 const r = results[i];
                 if(r) {
+                    const statusText = r.isAborted ? `<span style="color:#999;">(打ち切り)</span>` : `${r.gL} - ${r.gR}`;
                     html += `<div style="background:var(--surface2); margin-bottom:8px; padding:10px; border-radius:8px; border:1px solid var(--border);">
                         <div style="font-weight:bold; font-size:0.8rem; margin-bottom:5px; color:var(--text-dim);">第${i+1}マッチ</div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="flex:1; text-align:right; font-weight:bold; color:var(--blue);">${r.A}<br><span style="font-size:0.7rem">${r.B}</span></div>
-                            <div style="padding:0 15px; font-family:'Roboto Mono', monospace; font-size:1.5rem; font-weight:900;">${r.gL} - ${r.gR}</div>
+                            <div style="padding:0 15px; font-family:'Roboto Mono', monospace; font-size:1.2rem; font-weight:900;">${statusText}</div>
                             <div style="flex:1; text-align:left; font-weight:bold; color:var(--red);">${r.C}<br><span style="font-size:0.7rem">${r.D}</span></div>
                         </div></div>`;
                 }
@@ -655,7 +764,7 @@
             step(4); 
             let calcWinsL = 0, calcWinsR = 0;
             TS.matchResults.forEach(r => { 
-                if(r) { 
+                if(r && !r.isAborted) { 
                     let isL = r.A.includes('(OP)') || r.B.includes('(OP)');
                     let isR = r.C.includes('(OP)') || r.D.includes('(OP)');
                     if (isL && !isR) { calcWinsR++; }
@@ -690,7 +799,7 @@
                 
                 let calcWinsL = 0, calcWinsR = 0;
                 mergedResults.forEach(r => { 
-                    if(r) { 
+                    if(r && !r.isAborted) { 
                         let isL = r.A.includes('(OP)') || r.B.includes('(OP)');
                         let isR = r.C.includes('(OP)') || r.D.includes('(OP)');
                         if (isL && !isR) { calcWinsR++; }
@@ -708,7 +817,6 @@
             }
             btn.textContent = originalText; btn.disabled = false;
         }
-
     </script>
 </body>
 </html>
