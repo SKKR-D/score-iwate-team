@@ -96,7 +96,8 @@
             // タイムアウト判定（1時間）
             const now = Date.now();
             const validMatches = matches.filter(data => {
-                if (data.S && data.S.isFinished) return true;
+                // 【修正箇所】isFinished ではなく isMatchCompleted と isAborted を判定
+                if (data.S && (data.S.isMatchCompleted || data.S.isAborted)) return true;
                 return data.lastUpdate && (now - data.lastUpdate) < 60 * 60 * 1000;
             });
 
